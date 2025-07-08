@@ -1,1 +1,10 @@
-fastapiuvicornline-bot-sdk[async]httpxpython-dotenvsqlalchemypsycopg2-binaryasyncpgwebsocketsjinja2
+fastapi
+uvicorn
+line-bot-sdk[async]
+httpx
+python-dotenv
+sqlalchemy
+psycopg2-binary
+asyncpg
+websockets
+jinja2

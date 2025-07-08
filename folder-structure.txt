@@ -1,0 +1,31 @@
+.
+├── app/
+│   ├── __init__.py
+│   ├── main.py             # จุดเริ่มต้นหลักของแอปพลิเคชัน
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── routers/
+│   │       ├── __init__.py
+│   │       ├── admin.py      # Endpoints สำหรับ /admin ทั้งหมด
+│   │       └── webhook.py    # Endpoint สำหรับ /webhook ของ LINE
+│   ├── core/
+│   │   ├── __init__.py
+│   │   └── config.py         # จัดการการตั้งค่าและ Environment variables
+│   ├── db/
+│   │   ├── __init__.py
+│   │   ├── crud.py           # ฟังก์ชันสำหรับจัดการข้อมูล (CRUD)
+│   │   ├── database.py       # ตั้งค่าการเชื่อมต่อ Database
+│   │   └── models.py         # SQLAlchemy Models
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   └── chat.py           # Pydantic Schemas สำหรับ validation
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── line_handler.py   # Logic หลักในการจัดการ Event จาก LINE
+│   │   └── ws_manager.py     # จัดการ WebSocket connections
+│   └── templates/
+│       └── admin.html
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+└── .env

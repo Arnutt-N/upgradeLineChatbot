@@ -1,0 +1,1 @@
+fastapiuvicornline-bot-sdk[async]httpxpython-dotenvsqlalchemypsycopg2-binaryasyncpgwebsocketsjinja2

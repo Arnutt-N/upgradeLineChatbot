@@ -9,6 +9,16 @@ from app.core.config import settings
 from app.db.crud import get_or_create_user_status, set_live_chat_status, save_chat_message
 from app.services.ws_manager import manager
 
+async def get_user_profile(line_bot_api: AsyncMessagingApi, user_id: str):
+    """ดึงโปรไฟล์ผู้ใช้จาก LINE API"""
+    try:
+        from linebot.v3.messaging import GetProfileRequest
+        profile = await line_bot_api.get_profile(user_id)
+        return profile.display_name
+    except Exception as e:
+        print(f"Error getting user profile: {e}")
+        return f"ผู้ใช้ {user_id[-6:]}"  # fallback ใช้ 6 หลักสุดท้าย
+
 async def send_telegram_alert(message: str):
     """ส่งแจ้งเตือนผ่าน Telegram"""
     if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
@@ -42,11 +52,15 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
     if user_status.is_in_live_chat:
         # อยู่ในโหมด Live Chat: ตรวจสอบโหมดการทำงาน
         await save_chat_message(db, user_id, 'user', message_text)
+        
+        # ดึงชื่อโปรไฟล์ผู้ใช้
+        user_display_name = await get_user_profile(line_bot_api, user_id)
+        
         await manager.broadcast({
             "type": "new_message",
             "userId": user_id,
             "message": message_text,
-            "displayName": f"ลูกค้า {user_id[-6:]}"
+            "displayName": user_display_name
         })
         
         # ถ้าเป็นโหมด auto ให้บอทตอบอัตโนมัติ
@@ -90,8 +104,11 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
             except Exception as e:
                 print(f"Error sending LINE reply: {e}")
             
+            # ดึงชื่อโปรไฟล์ผู้ใช้
+            user_display_name = await get_user_profile(line_bot_api, user_id)
+            
             # ส่งแจ้งเตือนไปยัง Telegram
-            alert_message = f"🚨 *Human Handoff Request* 🚨\n\n*จาก:* `{user_id}`\n*ข้อความ:* {message_text}"
+            alert_message = f"🚨 *Human Handoff Request* 🚨\n\n*จาก:* {user_display_name}\n*ข้อความ:* {message_text}"
             await send_telegram_alert(alert_message)
             
             # แจ้งหน้า UI ว่ามี user ใหม่เข้ามา
@@ -99,7 +116,7 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
                 "type": "new_user_request",
                 "userId": user_id,
                 "message": message_text,
-                "displayName": f"ลูกค้า {user_id[-6:]}",  # ใช้ 6 หลักสุดท้าย
+                "displayName": user_display_name,  # ใช้ชื่อโปรไฟล์จริง
                 "timestamp": datetime.now().isoformat()
             })
         else:

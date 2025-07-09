@@ -1,9 +1,26 @@
 # app/db/database.py
+import os
+from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from app.core.config import settings
 from app.db.models import Base
+
+# สร้างโฟลเดอร์สำหรับ database ถ้ายังไม่มี
+def ensure_database_directory():
+    """สร้างโฟลเดอร์สำหรับ database"""
+    if settings.DATABASE_URL.startswith('sqlite'):
+        # Extract database path from URL
+        db_path = settings.DATABASE_URL.replace('sqlite+aiosqlite:///', '')
+        db_dir = Path(db_path).parent
+        
+        # สร้างโฟลเดอร์ถ้ายังไม่มี
+        db_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Ensured database directory exists: {db_dir}")
+
+# เรียกใช้ฟังก์ชันสร้างโฟลเดอร์
+ensure_database_directory()
 
 # สร้าง async engine
 async_engine = create_async_engine(

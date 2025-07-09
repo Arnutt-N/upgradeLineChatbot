@@ -2,12 +2,26 @@
 import httpx
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from linebot.v3.messaging import AsyncMessagingApi, TextMessage, ReplyMessageRequest, PushMessageRequest
+from linebot.v3.messaging import AsyncMessagingApi, TextMessage, ReplyMessageRequest, PushMessageRequest, ShowLoadingAnimationRequest
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 
 from app.core.config import settings
 from app.db.crud import get_or_create_user_status, set_live_chat_status, save_chat_message
 from app.services.ws_manager import manager
+
+async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str):
+    """แสดง loading animation ให้ผู้ใช้เห็น"""
+    try:
+        loading_request = ShowLoadingAnimationRequest(
+            chat_id=user_id,
+            loading_seconds=3  # แสดง animation 3 วินาที (ลดจาก 5 เป็น 3)
+        )
+        await line_bot_api.show_loading_animation(loading_request)
+        print(f"✅ Loading animation sent to user: {user_id}")
+    except Exception as e:
+        print(f"❌ Error showing loading animation: {e}")
+        # ไม่ให้ error นี้หยุดการทำงานของระบบ
+        pass
 
 async def get_user_profile(line_bot_api: AsyncMessagingApi, user_id: str):
     """ดึงโปรไฟล์ผู้ใช้จาก LINE API"""
@@ -65,6 +79,9 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
         
         # ถ้าเป็นโหมด auto ให้บอทตอบอัตโนมัติ
         if user_status.chat_mode == 'auto':
+            # แสดง loading animation ก่อนตอบ
+            await show_loading_animation(line_bot_api, user_id)
+            
             bot_response = f"🤖 บอทตอบอัตโนมัติ: ได้รับข้อความ '{message_text}' แล้วครับ"
             await save_chat_message(db, user_id, 'bot', bot_response)
             
@@ -89,6 +106,9 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
         await save_chat_message(db, user_id, 'user', message_text)
         
         if "คุยกับแอดมิน" in message_text or "ติดต่อเจ้าหน้าที่" in message_text:
+            # แสดง loading animation ขณะประมวลผล
+            await show_loading_animation(line_bot_api, user_id)
+            
             # เปลี่ยนเป็นโหมด Live Chat
             await set_live_chat_status(db, user_id, True)
             response_text = "รับทราบค่ะ กำลังโอนสายไปยังเจ้าหน้าที่ รอสักครู่นะคะ..."
@@ -121,6 +141,9 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
             })
         else:
             # โหมดบอทปกติ - ตอบข้อความปกติ (ไม่เอคโค่)
+            # แสดง loading animation ก่อนตอบ
+            await show_loading_animation(line_bot_api, user_id)
+            
             response_text = "สวัสดีค่ะ! ขอบคุณที่ติดต่อเรามา หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่' ค่ะ"
             await save_chat_message(db, user_id, 'bot', response_text)
             

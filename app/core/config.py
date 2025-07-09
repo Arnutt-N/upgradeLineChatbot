@@ -15,7 +15,7 @@ class Settings:
     TELEGRAM_CHAT_ID: str = os.getenv('TELEGRAM_CHAT_ID', '')
     
     # Database Configuration
-    DATABASE_URL: str = os.getenv('DATABASE_URL', 'sqlite+aiosqlite:///./data/chatbot.db')
+    DATABASE_URL: str = os.getenv('DATABASE_URL', 'sqlite+aiosqlite:///./chatbot.db')
     
     # Application Configuration
     APP_TITLE: str = "LINE Bot with Full Live Chat System"

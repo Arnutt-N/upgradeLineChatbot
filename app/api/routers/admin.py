@@ -59,10 +59,21 @@ async def admin_reply(payload: ReplyPayload, db: AsyncSession = Depends(get_db))
     try:
         line_bot_api = get_line_bot_api()
         
-        # 1. บันทึกข้อความของแอดมินลง DB
+        # 1. แสดง loading animation ให้ผู้ใช้เห็นว่าแอดมินกำลังพิมพ์
+        try:
+            from linebot.v3.messaging import ShowLoadingAnimationRequest
+            loading_request = ShowLoadingAnimationRequest(
+                chat_id=payload.user_id,
+                loading_seconds=3  # แสดง 3 วินาที
+            )
+            await line_bot_api.show_loading_animation(loading_request)
+        except Exception as e:
+            print(f"Error showing loading animation: {e}")
+        
+        # 2. บันทึกข้อความของแอดมินลง DB
         await save_chat_message(db, payload.user_id, 'admin', payload.message)
         
-        # 2. ส่ง Push Message ไปยังผู้ใช้ผ่าน LINE API
+        # 3. ส่ง Push Message ไปยังผู้ใช้ผ่าน LINE API
         try:
             from linebot.v3.messaging import PushMessageRequest
             push_request = PushMessageRequest(

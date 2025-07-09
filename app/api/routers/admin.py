@@ -177,6 +177,7 @@ async def get_users_list(db: AsyncSession = Depends(get_db)):
         
         for user_data in users_data:
             user_id = user_data.user_id
+            display_name = user_data.display_name
             is_in_live_chat = user_data.is_in_live_chat
             chat_mode = user_data.chat_mode
             
@@ -185,7 +186,7 @@ async def get_users_list(db: AsyncSession = Depends(get_db)):
             
             users_list.append({
                 "user_id": user_id,
-                "display_name": f"ลูกค้า {user_id[-6:]}",
+                "display_name": display_name or f"Customer {user_id[-6:]}",  # ใช้ชื่อจากฐานข้อมูล
                 "is_in_live_chat": is_in_live_chat,
                 "chat_mode": chat_mode,
                 "latest_message": latest_message.message if latest_message else "ไม่มีข้อความ",

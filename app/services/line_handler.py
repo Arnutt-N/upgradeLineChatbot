@@ -24,14 +24,18 @@ async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str):
         pass
 
 async def get_user_profile(line_bot_api: AsyncMessagingApi, user_id: str):
-    """ดึงโปรไฟล์ผู้ใช้จาก LINE API"""
+    """ดึงโปรไฟล์ผู้ใช้จาก LINE API (ปิดชั่วคราวสำหรับ production)"""
     try:
-        from linebot.v3.messaging import GetProfileRequest
-        profile = await line_bot_api.get_profile(user_id)
-        return profile.display_name
+        # TODO: แก้ไข LINE Bot SDK v3 user profile ใน production
+        # profile_response = await line_bot_api.get_profile(user_id)
+        # return profile_response.display_name
+        
+        # ใช้ fallback name เพื่อให้ระบบทำงานได้
+        return f"ลูกค้า {user_id[-6:]}"
+        
     except Exception as e:
-        print(f"Error getting user profile: {e}")
-        return f"ผู้ใช้ {user_id[-6:]}"  # fallback ใช้ 6 หลักสุดท้าย
+        print(f"Error getting user profile for {user_id}: {e}")
+        return f"ลูกค้า {user_id[-6:]}"
 
 async def send_telegram_alert(message: str):
     """ส่งแจ้งเตือนผ่าน Telegram"""

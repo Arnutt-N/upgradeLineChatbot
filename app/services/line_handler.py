@@ -55,8 +55,9 @@ async def send_telegram_alert(message: str):
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.get(api_url, params=params)
             response.raise_for_status()
+            print(f"✅ Telegram alert sent successfully")
     except Exception as e:
-        print(f"Error sending Telegram alert: {e}")
+        print(f"❌ Error sending Telegram alert: {e}")
 
 async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
     """จัดการข้อความที่ได้รับจาก LINE"""

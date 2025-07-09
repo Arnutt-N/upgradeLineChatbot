@@ -188,7 +188,11 @@
 
         // เชื่อมต่อ WebSocket
         function connectWebSocket() {
-            const wsUrl = 'ws://localhost:8000/ws';
+            // สร้าง WebSocket URL แบบ dynamic
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const wsUrl = `${protocol}//${host}/ws`;
+            
             console.log('Connecting to WebSocket:', wsUrl);
             
             ws = new WebSocket(wsUrl);
@@ -217,28 +221,39 @@
 
         // โหลดรายชื่อผู้ใช้จากฐานข้อมูล
         async function loadUsersFromDatabase() {
+            console.log('🔄 Starting to load users from database...');
             try {
                 const response = await fetch('/admin/users');
+                console.log('📡 API Response status:', response.status);
+                
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('📊 Loaded users from database:', data.users);
+                    console.log('📊 Loaded users from database:', data);
                     
                     // เคลียร์ users map และเพิ่มข้อมูลใหม่
                     users.clear();
+                    console.log('🗑️ Cleared users map');
                     
-                    data.users.forEach(user => {
-                        users.set(user.user_id, {
-                            id: user.user_id,
-                            displayName: user.display_name,
-                            messages: [], // จะโหลดตอนเลือกผู้ใช้
-                            chatEnded: !user.is_in_live_chat,
-                            chatMode: user.chat_mode || 'manual'
+                    if (data.users && data.users.length > 0) {
+                        data.users.forEach(user => {
+                            users.set(user.user_id, {
+                                id: user.user_id,
+                                displayName: user.display_name,
+                                messages: [], // จะโหลดตอนเลือกผู้ใช้
+                                chatEnded: !user.is_in_live_chat,
+                                chatMode: user.chat_mode || 'manual'
+                            });
                         });
-                    });
+                        console.log(`✅ Added ${data.users.length} users to map`);
+                    } else {
+                        console.log('ℹ️ No users found in database');
+                    }
                     
                     updateUsersList();
                 } else {
-                    console.error('❌ Failed to load users:', response.status);
+                    console.error('❌ Failed to load users. Status:', response.status);
+                    const errorText = await response.text();
+                    console.error('❌ Error details:', errorText);
                 }
             } catch (error) {
                 console.error('🚨 Error loading users from database:', error);
@@ -247,11 +262,14 @@
 
         // โหลดข้อความของผู้ใช้จากฐานข้อมูล
         async function loadMessagesFromDatabase(userId) {
+            console.log(`🔄 Loading messages for user: ${userId}`);
             try {
                 const response = await fetch(`/admin/messages/${userId}`);
+                console.log(`📡 Messages API Response status: ${response.status}`);
+                
                 if (response.ok) {
                     const data = await response.json();
-                    console.log(`📨 Loaded messages for user ${userId}:`, data.messages.length, 'messages');
+                    console.log(`📨 Loaded ${data.messages.length} messages for user ${userId}`);
                     
                     // อัปเดต messages ใน user object
                     if (users.has(userId)) {
@@ -260,6 +278,7 @@
                             type: msg.sender_type, // 'user', 'admin', 'bot'
                             timestamp: msg.created_at
                         }));
+                        console.log(`✅ Updated messages for user ${userId}`);
                     }
                     
                     // แสดงข้อความถ้าผู้ใช้คนนี้ถูกเลือกอยู่
@@ -267,7 +286,9 @@
                         loadMessages(userId);
                     }
                 } else {
-                    console.error(`❌ Failed to load messages for user ${userId}:`, response.status);
+                    console.error(`❌ Failed to load messages for user ${userId}. Status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('❌ Error details:', errorText);
                 }
             } catch (error) {
                 console.error(`🚨 Error loading messages for user ${userId}:`, error);
@@ -556,6 +577,13 @@
 
         // เริ่มต้นเชื่อมต่อ
         connectWebSocket();
+        
+        // โหลดข้อมูลผู้ใช้ทันทีเมื่อหน้าโหลด (backup ถ้า WebSocket ไม่ทำงาน)
+        console.log('🚀 Initializing admin panel...');
+        loadUsersFromDatabase();
+        
+        // โหลดข้อมูลซ้ำทุก 30 วินาที (เผื่อมีข้อมูลใหม่)
+        setInterval(loadUsersFromDatabase, 30000);
     </script>
 </body>
 </html>

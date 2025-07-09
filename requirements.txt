@@ -1,10 +1,9 @@
 fastapi
-uvicorn
-line-bot-sdk[async]
+uvicorn[standard]
+line-bot-sdk
 httpx
 python-dotenv
-sqlalchemy
-psycopg2-binary
-asyncpg
-websockets
+sqlalchemy[asyncio]
+aiosqlite
 jinja2
+python-multipart

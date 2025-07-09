@@ -3,6 +3,9 @@ import os
 import uvicorn
 from app.main import app
 
+# Export app สำหรับ gunicorn
+application = app
+
 if __name__ == "__main__":
     # Get environment settings
     host = os.getenv("HOST", "0.0.0.0")

@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+gunicorn
 line-bot-sdk
 httpx
 python-dotenv

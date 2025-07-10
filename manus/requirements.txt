@@ -8,4 +8,3 @@ sqlalchemy[asyncio]
 aiosqlite
 jinja2
 python-multipart
-aiofiles

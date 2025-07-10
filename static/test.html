@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .avatar-test {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 20px;
+            border: 3px solid #ddd;
+            display: inline-block;
+        }
+        .avatar-container {
+            margin: 30px 0;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        h3 {
+            color: #666;
+            margin: 10px 0 5px 0;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="avatar-test">
+        <h1>🎨 Avatar Assets Test Page</h1>
+        
+        <div class="info">
+            <strong>🎯 การทดสอบ:</strong> หน้านี้ใช้ทดสอบว่าไฟล์ Avatar ถูกคัดลอกและสามารถเข้าถึงได้หรือไม่<br>
+            <strong>📁 ตำแหน่ง:</strong> /static/images/avatars/<br>
+            <strong>🌐 URL:</strong> http://localhost:8000/static/test.html
+        </div>
+
+        <div class="avatar-container">
+            <h3>👤 User Avatar</h3>
+            <img src="/static/images/avatars/default_user_avatar.png" alt="User Avatar" class="avatar">
+        </div>
+
+        <div class="avatar-container">
+            <h3>👨‍💼 Admin Avatar</h3>
+            <img src="/static/images/avatars/default_admin_avatar.png" alt="Admin Avatar" class="avatar">
+        </div>
+
+        <div class="avatar-container">
+            <h3>🤖 Bot Avatar</h3>
+            <img src="/static/images/avatars/default_bot_avatar.png" alt="Bot Avatar" class="avatar">
+        </div>
+
+        <div class="info">
+            <strong>✅ ถ้าเห็นรูปทั้ง 3:</strong> Static files ทำงานถูกต้อง<br>
+            <strong>❌ ถ้าเห็นเป็น broken image:</strong> ตรวจสอบ FastAPI StaticFiles middleware
+        </div>
+    </div>
+</body>
+</html>

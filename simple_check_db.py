@@ -1,72 +1,68 @@
 import sqlite3
-import sys
+import os
 
-print("🔍 Checking database schema...")
-print("=" * 40)
-
-try:
-    # เชื่อมต่อฐานข้อมูล
-    conn = sqlite3.connect("chatbot.db")
-    cursor = conn.cursor()
+def check_database():
+    db_path = "chatbot.db"
     
-    # ตรวจสอบ schema ปัจจุบัน
-    cursor.execute("PRAGMA table_info(user_status)")
-    columns = cursor.fetchall()
+    if not os.path.exists(db_path):
+        print(f"Database file not found: {db_path}")
+        return
     
-    print("📊 Current user_status table columns:")
-    column_names = []
-    for i, col in enumerate(columns, 1):
-        col_name = col[1]
-        col_type = col[2]
-        nullable = "NULL" if col[3] == 0 else "NOT NULL"
-        print(f"  {i}. {col_name}: {col_type} ({nullable})")
-        column_names.append(col_name)
-    
-    # ตรวจสอบ picture_url
-    print(f"\n🔍 Checking for picture_url column...")
-    if "picture_url" in column_names:
-        print("✅ picture_url column already EXISTS!")
-    else:
-        print("❌ picture_url column NOT FOUND!")
-        print("📝 Adding picture_url column...")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
         
-        try:
-            cursor.execute("ALTER TABLE user_status ADD COLUMN picture_url TEXT NULL")
-            conn.commit()
-            print("✅ Successfully added picture_url column!")
+        print("=== DATABASE ANALYSIS ===")
+        print(f"Database file: {db_path}")
+        print()
+        
+        # Get all tables
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = cursor.fetchall()
+        
+        print("TABLES:")
+        for table in tables:
+            table_name = table[0]
+            print(f"  - {table_name}")
+        print()
+        
+        # Analyze each table
+        for table in tables:
+            table_name = table[0]
+            print(f"=== TABLE: {table_name} ===")
             
-            # ตรวจสอบอีกครั้ง
-            cursor.execute("PRAGMA table_info(user_status)")
-            new_columns = cursor.fetchall()
-            print(f"\n📊 Updated schema ({len(new_columns)} columns):")
-            for i, col in enumerate(new_columns, 1):
+            # Get schema
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = cursor.fetchall()
+            
+            print("COLUMNS:")
+            for col in columns:
                 col_name = col[1]
                 col_type = col[2]
                 nullable = "NULL" if col[3] == 0 else "NOT NULL"
-                print(f"  {i}. {col_name}: {col_type} ({nullable})")
-                
-        except Exception as e:
-            print(f"❌ Error adding column: {e}")
-    
-    # แสดงสถิติข้อมูล
-    cursor.execute("SELECT COUNT(*) FROM user_status")
-    total_users = cursor.fetchone()[0]
-    print(f"\n📈 Database statistics:")
-    print(f"  - Total users: {total_users}")
-    
-    if total_users > 0:
-        cursor.execute("SELECT user_id, display_name, picture_url FROM user_status LIMIT 3")
-        sample_data = cursor.fetchall()
-        print(f"  - Sample data:")
-        for user in sample_data:
-            user_id = user[0]
-            display_name = user[1] or "N/A"
-            picture_url = user[2] or "NULL"
-            print(f"    * {user_id}: {display_name} (pic: {picture_url})")
-    
-    conn.close()
-    print(f"\n🎉 Database check completed successfully!")
-    
-except Exception as e:
-    print(f"❌ Database error: {e}")
-    sys.exit(1)
+                default = f" DEFAULT {col[4]}" if col[4] else ""
+                print(f"  - {col_name}: {col_type} ({nullable}){default}")
+            
+            # Get count
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            count = cursor.fetchone()[0]
+            print(f"RECORDS: {count}")
+            
+            # Sample data (first 3 records)
+            if count > 0:
+                cursor.execute(f"SELECT * FROM {table_name} LIMIT 3")
+                sample_data = cursor.fetchall()
+                print("SAMPLE DATA:")
+                for i, row in enumerate(sample_data, 1):
+                    print(f"  Row {i}: {row}")
+            
+            print()
+        
+        conn.close()
+        print("=== ANALYSIS COMPLETED ===")
+        
+    except Exception as e:
+        print(f"Error analyzing database: {e}")
+
+if __name__ == "__main__":
+    check_database()

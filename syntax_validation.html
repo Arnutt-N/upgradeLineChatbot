@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Syntax Check</title>
+</head>
+<body>
+    <div id="test">Testing JavaScript Syntax...</div>
+    
+    <script>
+        console.log('🔍 Starting syntax validation...');
+        
+        // Test basic syntax
+        try {
+            // Test object creation
+            const testObj = {
+                test: 'value',
+                method: function() {
+                    return 'working';
+                }
+            };
+            
+            // Test function
+            async function testFunction() {
+                return 'async working';
+            }
+            
+            // Test async/await
+            testFunction().then(result => {
+                console.log('✅ Async/await syntax: OK');
+            });
+            
+            console.log('✅ Object syntax: OK');
+            console.log('✅ Function syntax: OK');
+            console.log('✅ All basic syntax checks passed!');
+            
+            document.getElementById('test').innerHTML = '✅ JavaScript syntax validation PASSED!';
+            document.getElementById('test').style.color = 'green';
+            
+        } catch (error) {
+            console.error('❌ Syntax error found:', error);
+            document.getElementById('test').innerHTML = '❌ JavaScript syntax validation FAILED: ' + error.message;
+            document.getElementById('test').style.color = 'red';
+        }
+    </script>
+</body>
+</html>

@@ -1427,7 +1427,41 @@
                     </div>
                 </div>
                 <div class="users-list" id="usersList">
-                    <!-- Users will be populated here by JavaScript -->
+                    <!-- Sample Users for Demo -->
+                    <div class="user-item active" data-user-id="user1" onclick="selectUser('user1')">
+                        <div class="user-avatar">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" alt="User Avatar">
+                            <div class="online-indicator online"></div>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">นายสมชาย ใจดี</div>
+                            <div class="user-status">กำลังแชท</div>
+                        </div>
+                        <div class="unread-count">3</div>
+                    </div>
+                    
+                    <div class="user-item" data-user-id="user2" onclick="selectUser('user2')">
+                        <div class="user-avatar">
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face" alt="User Avatar">
+                            <div class="online-indicator offline"></div>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">นางสาวสุดา สวยงาม</div>
+                            <div class="user-status">ออฟไลน์ 5 นาทีที่แล้ว</div>
+                        </div>
+                    </div>
+                    
+                    <div class="user-item" data-user-id="user3" onclick="selectUser('user3')">
+                        <div class="user-avatar">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" alt="User Avatar">
+                            <div class="online-indicator online"></div>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">นายวิชัย เก่งมาก</div>
+                            <div class="user-status">ออนไลน์</div>
+                        </div>
+                        <div class="unread-count">1</div>
+                    </div>
                 </div>
             </aside>
 
@@ -1440,11 +1474,11 @@
                 <div class="chat-header" id="chatHeader">
                     <div class="chat-user-info">
                         <div class="chat-user-avatar" id="chatUserAvatar">
-                            <span>?</span>
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" alt="User Avatar">
                         </div>
                         <div class="chat-user-details">
-                            <h3 id="chatUserName">เลือกผู้ใช้เพื่อเริ่มการสนทนา</h3>
-                            <p id="chatUserStatus">-</p>
+                            <h3 id="chatUserName">นายสมชาย ใจดี</h3>
+                            <p id="chatUserStatus">ออนไลน์ • กำลังพิมพ์...</p>
                         </div>
                     </div>
                     <div class="chat-actions">
@@ -1458,7 +1492,56 @@
                 <!-- Messages Container -->
                 <div class="messages-container" id="messagesContainer">
                     <div class="messages-list" id="messagesList">
-                        <!-- Messages will be populated here by JavaScript -->
+                        <!-- Sample Messages -->
+                        <div class="message user">
+                            <div class="message-avatar">
+                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" alt="User Avatar">
+                            </div>
+                            <div class="message-content">
+                                <div class="message-bubble">สวัสดีครับ ผมต้องการสอบถามเรื่องสินค้าครับ</div>
+                                <div class="message-time">14:30</div>
+                            </div>
+                        </div>
+                        
+                        <div class="message admin">
+                            <div class="message-avatar">
+                                <span>A</span>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-bubble">สวัสดีครับ ยินดีให้บริการครับ มีอะไรให้ช่วยเหลือไหมครับ</div>
+                                <div class="message-time">14:31</div>
+                            </div>
+                        </div>
+                        
+                        <div class="message user">
+                            <div class="message-avatar">
+                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" alt="User Avatar">
+                            </div>
+                            <div class="message-content">
+                                <div class="message-bubble">ผมอยากทราบราคาสินค้าครับ</div>
+                                <div class="message-time">14:32</div>
+                            </div>
+                        </div>
+                        
+                        <div class="message system">
+                            <div class="message-avatar">
+                                <span>S</span>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-bubble">เปลี่ยนเป็นโหมด Bot แล้ว</div>
+                                <div class="message-time">14:33</div>
+                            </div>
+                        </div>
+                        
+                        <div class="message bot">
+                            <div class="message-avatar">
+                                <span>B</span>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-bubble">ขอบคุณที่สนใจสินค้าของเราครับ กรุณารอสักครู่ ผมจะส่งรายการสินค้าและราคาให้ครับ</div>
+                                <div class="message-time">14:33</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1645,197 +1728,15 @@
             }]
         ]);
 
-        // WebSocket Connection
-        function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-            
-            ws.onopen = () => {
-                console.log('✅ WebSocket Connected');
-            };
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleMessage(data);
-            };
-            
-            ws.onclose = () => {
-                console.log('❌ WebSocket connection closed, reconnecting in 3 seconds...');
-                setTimeout(connectWebSocket, 3000);
-            };
-            
-            ws.onerror = (error) => {
-                console.error('🚨 WebSocket error:', error);
-            };
-        }
-
-        // Load users from database
-        async function loadUsersFromDatabase() {
-            try {
-                const response = await fetch('/admin/users');
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('📊 Loaded users from database:', data);
-                    
-                    users.clear();
-                    if (data.users && data.users.length > 0) {
-                        data.users.forEach(user => {
-                            users.set(user.user_id, {
-                                id: user.user_id,
-                                displayName: user.display_name || `Customer ${user.user_id.slice(-6)}`,
-                                avatar: null, // Will be loaded separately
-                                isOnline: user.is_in_live_chat,
-                                unreadCount: 0,
-                                status: user.is_in_live_chat ? 'กำลังแชท' : 'ออฟไลน์',
-                                chatEnded: !user.is_in_live_chat,
-                                chatMode: user.chat_mode || 'manual'
-                            });
-                        });
-                    }
-                    updateUsersList();
-                } else {
-                    console.error('❌ Failed to load users:', response.status);
-                    // Fallback to sample data for demo
-                    loadSampleData();
-                }
-            } catch (error) {
-                console.error('🚨 Error loading users:', error);
-                // Fallback to sample data for demo
-                loadSampleData();
-            }
-        }
-
-        // Fallback sample data
-        function loadSampleData() {
-            console.log('📝 Loading sample data for demo');
-            const sampleUsers = new Map([
-                ['user1', {
-                    id: 'user1',
-                    displayName: 'นายสมชาย ใจดี',
-                    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-                    isOnline: true,
-                    unreadCount: 3,
-                    status: 'กำลังแชท',
-                    chatEnded: false,
-                    chatMode: 'manual'
-                }],
-                ['user2', {
-                    id: 'user2',
-                    displayName: 'นางสาวสุดา สวยงาม',
-                    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-                    isOnline: false,
-                    unreadCount: 0,
-                    status: 'ออฟไลน์ 5 นาทีที่แล้ว',
-                    chatEnded: true,
-                    chatMode: 'manual'
-                }],
-                ['user3', {
-                    id: 'user3',
-                    displayName: 'นายวิชัย เก่งมาก',
-                    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-                    isOnline: true,
-                    unreadCount: 1,
-                    status: 'ออนไลน์',
-                    chatEnded: false,
-                    chatMode: 'manual'
-                }]
-            ]);
-            users = sampleUsers;
-            updateUsersList();
-        }
-
-        // Handle WebSocket messages
-        function handleMessage(data) {
-            console.log('📨 Handling message:', data);
-            
-            if (data.type === 'new_message' || data.type === 'new_user_request') {
-                addUser(data.userId, data.displayName);
-                if (currentUserId === data.userId) {
-                    displayMessage(data.message, 'user', data.timestamp || new Date().toISOString());
-                }
-                
-            } else if (data.type === 'bot_auto_reply') {
-                if (currentUserId === data.userId) {
-                    displayMessage(data.message, 'bot', data.timestamp || new Date().toISOString());
-                }
-                
-            } else if (data.type === 'mode_changed') {
-                if (currentUserId === data.userId) {
-                    displayMessage(data.message, 'system', data.timestamp || new Date().toISOString());
-                }
-            }
-        }
-
-        // Add user to list
-        function addUser(userId, displayName) {
-            if (!users.has(userId)) {
-                users.set(userId, {
-                    id: userId,
-                    displayName: displayName || `Customer ${userId.slice(-6)}`,
-                    avatar: null,
-                    isOnline: true,
-                    unreadCount: 0,
-                    status: 'กำลังแชท',
-                    chatEnded: false,
-                    chatMode: 'manual'
-                });
-                updateUsersList();
-            }
-        }
-
-        // Update users list UI
-        function updateUsersList() {
-            const usersList = document.getElementById('usersList');
-            usersList.innerHTML = '';
-            
-            if (users.size === 0) {
-                usersList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <h3>ยังไม่มีลูกค้า</h3>
-                        <p>รอลูกค้าส่งข้อความเข้ามา</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            users.forEach((user, userId) => {
-                const userDiv = document.createElement('div');
-                userDiv.className = 'user-item';
-                userDiv.dataset.userId = userId;
-                if (currentUserId === userId) userDiv.classList.add('active');
-
-                const avatarContent = user.avatar ? 
-                    `<img src="${user.avatar}" alt="${user.displayName}">` :
-                    `<span>${user.displayName.charAt(0)}</span>`;
-
-                userDiv.innerHTML = `
-                    <div class="user-avatar">
-                        ${avatarContent}
-                        <div class="online-indicator ${user.isOnline ? 'online' : 'offline'}"></div>
-                    </div>
-                    <div class="user-info">
-                        <div class="user-name">${user.displayName}</div>
-                        <div class="user-status">${user.chatEnded ? 'จบการสนทนา' : user.status}</div>
-                    </div>
-                    ${user.unreadCount > 0 ? `<div class="unread-count">${user.unreadCount}</div>` : ''}
-                `;
-                
-                userDiv.addEventListener('click', () => selectUser(userId));
-                usersList.appendChild(userDiv);
-            });
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             initializeApp();
             setupEventListeners();
             setupKeyboardShortcuts();
             loadTheme();
-            connectWebSocket();
-            loadUsersFromDatabase();
         });
 
         function initializeApp() {
+            users = sampleUsers;
             autoResizeTextarea();
             
             if (window.innerWidth <= 768) {
@@ -2013,7 +1914,7 @@
             }, 100);
         }
 
-        async function selectUser(userId) {
+        function selectUser(userId) {
             currentUserId = userId;
             const user = users.get(userId);
             if (!user) return;
@@ -2044,33 +1945,9 @@
                 unreadElement.remove();
             }
 
-            // Load messages from database
-            await loadMessagesFromDatabase(userId);
-
             if (window.innerWidth <= 768) {
                 closeSidebar();
                 showChatView();
-            }
-        }
-
-        // Load messages from database
-        async function loadMessagesFromDatabase(userId) {
-            try {
-                const response = await fetch(`/admin/messages/${userId}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const messagesList = document.getElementById('messagesList');
-                    messagesList.innerHTML = ''; // Clear existing messages
-                    
-                    data.messages.forEach(msg => {
-                        displayMessage(msg.message, msg.sender_type, msg.created_at);
-                    });
-                    scrollToBottom();
-                } else {
-                    console.error('Failed to load messages:', response.status);
-                }
-            } catch (error) {
-                console.error('Error loading messages:', error);
             }
         }
 
@@ -2108,39 +1985,30 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        async function sendMessage() {
+        function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
             if (!message || !currentUserId) return;
 
-            try {
-                const response = await fetch('/admin/reply', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: currentUserId,
-                        message: message
-                    })
-                });
-
-                if (response.ok) {
-                    const timestamp = new Date().toISOString();
-                    displayMessage(message, 'admin', timestamp);
-                    
-                    input.value = '';
-                    autoResizeTextarea();
-                    
-                    // Haptic feedback
-                    if (navigator.vibrate) {
-                        navigator.vibrate(20);
-                    }
-                } else {
-                    console.error('Failed to send message:', response.status);
-                    alert('ไม่สามารถส่งข้อความได้ กรุณาลองใหม่');
-                }
-            } catch (error) {
-                console.error('Error sending message:', error);
-                alert('เกิดข้อผิดพลาดในการส่งข้อความ');
+            const timestamp = new Date().toISOString();
+            displayMessage(message, 'admin', timestamp);
+            
+            input.value = '';
+            autoResizeTextarea();
+            
+            // Show mode notification
+            if (currentMode === 'manual') {
+                setTimeout(() => {
+                    displayMessage('ข้อความถูกส่งในโหมด Manual', 'system', new Date().toISOString());
+                }, 500);
+            } else if (currentMode === 'bot') {
+                setTimeout(() => {
+                    displayMessage('ข้อความถูกส่งในโหมด Bot', 'system', new Date().toISOString());
+                }, 500);
+            }
+            
+            if (navigator.vibrate) {
+                navigator.vibrate(20);
             }
         }
 
@@ -2230,9 +2098,7 @@
             notificationSettings.sound = enabled;
         }
 
-        async function toggleMode(mode) {
-            if (!currentUserId) return;
-            
+        function toggleMode(mode) {
             currentMode = mode;
             console.log('Toggle mode:', mode);
             
@@ -2241,24 +2107,9 @@
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
             
-            try {
-                // Send mode change to backend
-                await fetch('/admin/toggle_mode', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: currentUserId,
-                        mode: mode
-                    })
-                });
-                
-                // Show notification message
-                const modeText = mode === 'manual' ? 'Manual (แอดมินตอบเอง)' : 'Bot (บอทตอบอัตโนมัติ)';
-                displayMessage(`🔄 เปลี่ยนเป็นโหมด ${modeText} แล้ว`, 'system', new Date().toISOString());
-                
-            } catch (error) {
-                console.error('Error toggling mode:', error);
-            }
+            // Show notification message
+            const modeText = mode === 'manual' ? 'Manual' : 'Bot';
+            displayMessage(`เปลี่ยนเป็นโหมด ${modeText} แล้ว`, 'system', new Date().toISOString());
         }
 
         function showNotification(title, body) {

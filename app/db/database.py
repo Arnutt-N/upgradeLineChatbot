@@ -48,7 +48,16 @@ async def create_db_and_tables():
             print("Added chat_mode column to user_status table")
         except Exception as e:
             # Column อาจมีอยู่แล้วหรือเกิด error อื่น
-            print(f"Note: {e}")
+            print(f"Note: chat_mode column already exists or error: {e}")
+            pass
+        
+        # เพิ่ม column picture_url ถ้ายังไม่มี (สำหรับ avatar feature)
+        try:
+            await conn.execute(text("ALTER TABLE user_status ADD COLUMN picture_url TEXT NULL"))
+            print("✅ Added picture_url column to user_status table")
+        except Exception as e:
+            # Column อาจมีอยู่แล้วหรือเกิด error อื่น
+            print(f"Note: picture_url column already exists or error: {e}")
             pass
 
 async def get_db():

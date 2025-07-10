@@ -24,7 +24,7 @@ async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str):
         pass
 
 async def get_user_profile(line_bot_api: AsyncMessagingApi, user_id: str):
-    """ดึงโปรไฟล์ผู้ใช้จาก LINE API - ปรับปรุงให้ทำงานได้จริง"""
+    """ดึงโปรไฟล์ผู้ใช้จาก LINE API - รวม display_name และ picture_url"""
     try:
         # พยายามดึงข้อมูลจริงจาก LINE API
         print(f"🔍 Attempting to get profile for user: {user_id}")
@@ -32,8 +32,10 @@ async def get_user_profile(line_bot_api: AsyncMessagingApi, user_id: str):
         # ใช้ LINE Bot SDK v3 - ลองดึงข้อมูลจริง
         profile = await line_bot_api.get_profile(user_id)
         if profile and hasattr(profile, 'display_name'):
-            print(f"✅ Successfully got profile: {profile.display_name}")
-            return profile.display_name
+            display_name = profile.display_name
+            picture_url = getattr(profile, 'picture_url', None)
+            print(f"✅ Successfully got profile: {display_name} (pic: {picture_url})")
+            return display_name, picture_url
         else:
             print(f"⚠️ Profile response exists but no display_name")
             
@@ -50,10 +52,10 @@ async def get_user_profile(line_bot_api: AsyncMessagingApi, user_id: str):
     # ใช้ fallback name
     fallback_name = f"Customer {user_id[-6:]}"
     print(f"🔧 Using fallback name: {fallback_name}")
-    return fallback_name
+    return fallback_name, None
 
 async def get_user_profile_direct(user_id: str):
-    """ดึงโปรไฟล์ผู้ใช้โดยใช้ httpx โดยตรง"""
+    """ดึงโปรไฟล์ผู้ใช้โดยใช้ httpx โดยตรง - รวม picture_url"""
     try:
         headers = {
             'Authorization': f'Bearer {settings.LINE_CHANNEL_ACCESS_TOKEN}',
@@ -70,15 +72,16 @@ async def get_user_profile_direct(user_id: str):
             if response.status_code == 200:
                 data = response.json()
                 display_name = data.get('displayName', f"Customer {user_id[-6:]}")
-                print(f"✅ Direct API success: {display_name}")
-                return display_name
+                picture_url = data.get('pictureUrl', None)  # ดึง picture URL
+                print(f"✅ Direct API success: {display_name} (pic: {picture_url})")
+                return display_name, picture_url
             else:
                 print(f"❌ Direct API failed with status: {response.status_code}")
-                return f"Customer {user_id[-6:]}"
+                return f"Customer {user_id[-6:]}", None
                 
     except Exception as e:
         print(f"❌ Direct API exception: {type(e).__name__}: {e}")
-        return f"Customer {user_id[-6:]}"
+        return f"Customer {user_id[-6:]}", None
 
 async def send_telegram_alert(message: str):
     """ส่งแจ้งเตือนผ่าน Telegram"""
@@ -110,12 +113,12 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
 
     print(f"📩 Message from {user_id}: {message_text}")
     
-    # ดึงชื่อโปรไฟล์ผู้ใช้ก่อน (ทำก่อนเสมอ)
-    user_display_name = await get_user_profile(line_bot_api, user_id)
-    print(f"👤 User display name: {user_display_name}")
+    # ดึงชื่อโปรไฟล์ผู้ใช้ก่อน (ทำก่อนเสมอ) - รวม picture_url
+    user_display_name, user_picture_url = await get_user_profile(line_bot_api, user_id)
+    print(f"👤 User profile: {user_display_name} (pic: {user_picture_url})")
 
-    # รับสถานะผู้ใช้ พร้อมอัปเดตชื่อ
-    user_status = await get_or_create_user_status(db, user_id, user_display_name)
+    # รับสถานะผู้ใช้ พร้อมอัปเดตชื่อและรูปโปรไฟล์
+    user_status = await get_or_create_user_status(db, user_id, user_display_name, user_picture_url)
 
     if user_status.is_in_live_chat:
         # อยู่ในโหมด Live Chat: ตรวจสอบโหมดการทำงาน
@@ -125,7 +128,8 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
             "type": "new_message",
             "userId": user_id,
             "message": message_text,
-            "displayName": user_display_name
+            "displayName": user_display_name,
+            "pictureUrl": user_picture_url
         })
         
         # ถ้าเป็นโหมด auto ให้บอทตอบอัตโนมัติ
@@ -161,7 +165,7 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
             await show_loading_animation(line_bot_api, user_id)
             
             # เปลี่ยนเป็นโหมด Live Chat
-            await set_live_chat_status(db, user_id, True, user_display_name)
+            await set_live_chat_status(db, user_id, True, user_display_name, user_picture_url)
             response_text = "รับทราบค่ะ กำลังโอนสายไปยังเจ้าหน้าที่ รอสักครู่นะคะ..."
             await save_chat_message(db, user_id, 'bot', response_text)
             
@@ -185,6 +189,7 @@ async def handle_message(event: MessageEvent, db: AsyncSession, line_bot_api: As
                 "userId": user_id,
                 "message": message_text,
                 "displayName": user_display_name,  # ใช้ชื่อโปรไฟล์จริง
+                "pictureUrl": user_picture_url,  # ส่ง picture URL ด้วย
                 "timestamp": datetime.now().isoformat()
             })
         else:

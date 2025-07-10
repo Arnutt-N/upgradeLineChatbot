@@ -10,6 +10,7 @@ class UserStatus(Base):
     
     user_id = Column(String, primary_key=True, index=True)
     display_name = Column(String, nullable=True)  # เก็บชื่อผู้ใช้จาก LINE Profile
+    picture_url = Column(String, nullable=True)  # เก็บ URL รูปโปรไฟล์จาก LINE Profile
     is_in_live_chat = Column(Boolean, default=False)
     chat_mode = Column(String, default='manual')  # 'manual' หรือ 'auto'
     created_at = Column(DateTime(timezone=True), server_default=func.now())

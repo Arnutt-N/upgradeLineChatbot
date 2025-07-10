@@ -1683,7 +1683,7 @@
                             users.set(user.user_id, {
                                 id: user.user_id,
                                 displayName: user.display_name || `Customer ${user.user_id.slice(-6)}`,
-                                avatar: null, // Will be loaded separately
+                                avatar: user.picture_url || null, // ใช้ picture_url จาก API
                                 isOnline: user.is_in_live_chat,
                                 unreadCount: 0,
                                 status: user.is_in_live_chat ? 'กำลังแชท' : 'ออฟไลน์',
@@ -1749,7 +1749,7 @@
             console.log('📨 Handling message:', data);
             
             if (data.type === 'new_message' || data.type === 'new_user_request') {
-                addUser(data.userId, data.displayName);
+                addUser(data.userId, data.displayName, data.pictureUrl);
                 if (currentUserId === data.userId) {
                     displayMessage(data.message, 'user', data.timestamp || new Date().toISOString());
                 }
@@ -1767,12 +1767,12 @@
         }
 
         // Add user to list
-        function addUser(userId, displayName) {
+        function addUser(userId, displayName, pictureUrl) {
             if (!users.has(userId)) {
                 users.set(userId, {
                     id: userId,
                     displayName: displayName || `Customer ${userId.slice(-6)}`,
-                    avatar: null,
+                    avatar: pictureUrl || null,  // ใช้ pictureUrl จาก WebSocket
                     isOnline: true,
                     unreadCount: 0,
                     status: 'กำลังแชท',
@@ -1805,9 +1805,7 @@
                 userDiv.dataset.userId = userId;
                 if (currentUserId === userId) userDiv.classList.add('active');
 
-                const avatarContent = user.avatar ? 
-                    `<img src="${user.avatar}" alt="${user.displayName}">` :
-                    `<span>${user.displayName.charAt(0)}</span>`;
+                const avatarContent = createAvatarContent(user, 'user');
 
                 userDiv.innerHTML = `
                     <div class="user-avatar">
@@ -1824,6 +1822,30 @@
                 userDiv.addEventListener('click', () => selectUser(userId));
                 usersList.appendChild(userDiv);
             });
+        }
+
+        // Avatar management functions
+        function getDefaultAvatar(userType = 'user') {
+            const defaultAvatars = {
+                'user': '/static/images/avatars/default_user_avatar.png',
+                'admin': '/static/images/avatars/default_admin_avatar.png',
+                'bot': '/static/images/avatars/default_bot_avatar.png'
+            };
+            return defaultAvatars[userType] || defaultAvatars['user'];
+        }
+
+        function createAvatarContent(user, userType = 'user') {
+            if (user.avatar) {
+                // ถ้ามี avatar URL ให้ใช้ พร้อม fallback เป็น default avatar
+                return `<img src="${user.avatar}" 
+                            alt="${user.displayName}" 
+                            onerror="this.onerror=null;this.src='${getDefaultAvatar(userType)}';">`;
+            } else {
+                // ถ้าไม่มี avatar URL ให้ใช้ default avatar เลย
+                return `<img src="${getDefaultAvatar(userType)}" 
+                            alt="${user.displayName}" 
+                            onerror="this.onerror=null;this.style.display='none';this.parentElement.innerHTML='<span>${user.displayName.charAt(0)}</span>';">`;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -2028,11 +2050,8 @@
             const chatUserName = document.getElementById('chatUserName');
             const chatUserStatus = document.getElementById('chatUserStatus');
 
-            if (user.avatar) {
-                chatUserAvatar.innerHTML = `<img src="${user.avatar}" alt="User Avatar">`;
-            } else {
-                chatUserAvatar.innerHTML = `<span>${user.displayName.charAt(0)}</span>`;
-            }
+            // Update chat header avatar
+            chatUserAvatar.innerHTML = createAvatarContent(user, 'user');
             
             chatUserName.textContent = user.displayName;
             chatUserStatus.textContent = user.isOnline ? 'ออนไลน์ • กำลังพิมพ์...' : user.status;
@@ -2083,11 +2102,15 @@
             let avatarContent = '';
             if (type === 'user' && currentUserId) {
                 const user = users.get(currentUserId);
-                if (user && user.avatar) {
-                    avatarContent = `<img src="${user.avatar}" alt="User Avatar">`;
+                if (user) {
+                    avatarContent = createAvatarContent(user, 'user');
                 } else {
-                    avatarContent = `<span>${type.charAt(0).toUpperCase()}</span>`;
+                    avatarContent = `<img src="${getDefaultAvatar('user')}" alt="User Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>U</span>';">`;
                 }
+            } else if (type === 'admin') {
+                avatarContent = `<img src="${getDefaultAvatar('admin')}" alt="Admin Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>A</span>';">`;
+            } else if (type === 'bot') {
+                avatarContent = `<img src="${getDefaultAvatar('bot')}" alt="Bot Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>B</span>';">`;
             } else {
                 avatarContent = `<span>${type.charAt(0).toUpperCase()}</span>`;
             }

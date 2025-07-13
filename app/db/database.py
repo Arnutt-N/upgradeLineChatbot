@@ -39,8 +39,9 @@ AsyncSessionLocal = sessionmaker(
 async def create_db_and_tables():
     """สร้างตารางฐานข้อมูล"""
     async with async_engine.begin() as conn:
-        # สร้างตารางทั้งหมด
+        # สร้างตารางทั้งหมด (รวมตารางใหม่สำหรับ Forms System)
         await conn.run_sync(Base.metadata.create_all)
+        print("All database tables created successfully")
         
         # เพิ่ม column chat_mode ถ้ายังไม่มี (สำหรับ database เก่า)
         try:
@@ -54,11 +55,13 @@ async def create_db_and_tables():
         # เพิ่ม column picture_url ถ้ายังไม่มี (สำหรับ avatar feature)
         try:
             await conn.execute(text("ALTER TABLE user_status ADD COLUMN picture_url TEXT NULL"))
-            print("✅ Added picture_url column to user_status table")
+            print("Added picture_url column to user_status table")
         except Exception as e:
             # Column อาจมีอยู่แล้วหรือเกิด error อื่น
             print(f"Note: picture_url column already exists or error: {e}")
             pass
+            
+        print("Database migration completed successfully!")
 
 async def get_db():
     """Dependency สำหรับรับ database session"""

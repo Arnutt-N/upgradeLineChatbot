@@ -193,4 +193,10 @@ pids
 *.pid
 *.seed
 *.pid.lock
+<<<<<<< HEAD
 "*.db" 
+=======
+
+
+manus/
+>>>>>>> feature/forms-admin-separation

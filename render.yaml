@@ -1,0 +1,91 @@
+# Render.com Service Configuration for HR LINE Chatbot System
+version: 1
+
+services:
+  # Main Web Service
+  - type: web
+    name: line-chatbot-hr-system
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      python deployment/migrate_production.py
+    startCommand: gunicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker --timeout 120
+    healthCheckPath: /health
+    
+    # Environment Variables
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
+      - key: RELOAD
+        value: false
+      - key: DEBUG
+        value: false
+      
+      # Database
+      - key: DATABASE_URL
+        value: sqlite:///./chatbot.db
+      
+      # LINE Bot (from Render Dashboard)
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      
+      # Telegram (from Render Dashboard)  
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      
+      # Security
+      - key: SECRET_KEY
+        generateValue: true
+      
+      # Application Settings
+      - key: NOTIFICATION_QUEUE_SIZE
+        value: 100
+      - key: HISTORY_RETENTION_DAYS
+        value: 90
+      - key: ANALYTICS_UPDATE_INTERVAL
+        value: 300
+
+    # Disk for database
+    disk:
+      name: chatbot-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
+
+    # Auto-deploy settings
+    autoDeploy: true
+    
+    # Health check
+    healthCheckPath: /health
+    healthCheckTimeout: 30
+    
+    # Custom headers for security
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+
+# Build settings
+build:
+  commands:
+    - echo "Installing dependencies..."
+    - pip install -r requirements.txt
+    - echo "Running database migrations..."
+    - python deployment/migrate_production.py
+    - echo "Build completed successfully!"

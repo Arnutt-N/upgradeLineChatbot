@@ -1,0 +1,174 @@
+{% extends "form_admin/base.html" %}
+
+{% block content %}
+<!-- Filters -->
+<div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+        <div class="flex items-center space-x-4">
+            <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option>ทุกสถานะ</option>
+                <option>รอดำเนินการ</option>
+                <option>กำลังดำเนินการ</option>
+                <option>เสร็จสิ้น</option>
+                <option>ปฏิเสธ</option>
+            </select>
+            
+            <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option>วันนี้</option>
+                <option>สัปดาห์นี้</option>
+                <option>เดือนนี้</option>
+                <option>ทั้งหมด</option>
+            </select>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button class="px-4 py-2 text-sm text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50">
+                <i class="fas fa-download w-4 h-4 mr-2 inline"></i>
+                ส่งออก Excel
+            </button>
+            <button onclick="loadKP7Forms()" class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">
+                <i class="fas fa-sync-alt w-4 h-4 mr-2 inline"></i>
+                โหลดข้อมูล
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Forms Table -->
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">รายการคำขอ ก.พ. 7</h3>
+        <p class="text-sm text-gray-600 mt-1">จัดการคำขอสำเนาประวัติ ก.พ. 7 ทั้งหมด</p>
+    </div>
+    
+    <div id="forms-table" class="p-6">
+        <div class="text-center py-8">
+            <div class="bg-indigo-100 p-6 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                <i class="fas fa-file-alt w-12 h-12 text-indigo-600"></i>
+            </div>
+            <h4 class="text-lg font-semibold text-gray-900 mb-2">พร้อมแสดงข้อมูล</h4>
+            <p class="text-gray-600 mb-4">กดปุ่ม "โหลดข้อมูล" เพื่อดูรายการคำขอ ก.พ. 7</p>
+            <div class="text-sm text-gray-500">
+                <p>Database: <span class="font-semibold text-green-600">เชื่อมต่อแล้ว</span></p>
+                <p>API: <span class="font-semibold text-blue-600">พร้อมใช้งาน</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadKP7Forms() {
+    const tableDiv = document.getElementById('forms-table');
+    
+    try {
+        tableDiv.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin w-8 h-8 text-indigo-600 mx-auto mb-4"></i>
+                <p class="text-gray-600">กำลังโหลดข้อมูล...</p>
+            </div>
+        `;
+        
+        const response = await fetch('/form-admin/api/forms/kp7');
+        const data = await response.json();
+        
+        if (data.forms && data.forms.length > 0) {
+            let tableHTML = `
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ผู้ขอ</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">อีเมล</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่ยื่น</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">การดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+            `;
+            
+            data.forms.forEach(form => {
+                const statusClass = {
+                    'pending': 'bg-orange-100 text-orange-800',
+                    'processing': 'bg-blue-100 text-blue-800', 
+                    'completed': 'bg-green-100 text-green-800',
+                    'rejected': 'bg-red-100 text-red-800'
+                }[form.status] || 'bg-gray-100 text-gray-800';
+                
+                const statusText = {
+                    'pending': 'รอดำเนินการ',
+                    'processing': 'กำลังดำเนินการ',
+                    'completed': 'เสร็จสิ้น',
+                    'rejected': 'ปฏิเสธ'
+                }[form.status] || form.status;
+                
+                tableHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">${form.user_name}</div>
+                            <div class="text-sm text-gray-500">${form.notes || 'ไม่มีหมายเหตุ'}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${form.user_email || 'ไม่ระบุ'}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full ${statusClass}">
+                                ${statusText}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${form.submitted_at ? new Date(form.submitted_at).toLocaleDateString('th-TH') : 'ไม่ระบุ'}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <button class="text-indigo-600 hover:text-indigo-900">
+                                    <i class="fas fa-eye w-4 h-4"></i>
+                                </button>
+                                <button class="text-green-600 hover:text-green-900">
+                                    <i class="fas fa-edit w-4 h-4"></i>
+                                </button>
+                                <button class="text-blue-600 hover:text-blue-900">
+                                    <i class="fas fa-download w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <div class="text-sm text-gray-500">
+                        แสดง ${data.forms.length} รายการ
+                    </div>
+                    <div class="text-sm text-green-600 font-medium">
+                        ✅ โหลดข้อมูลสำเร็จ
+                    </div>
+                </div>
+            `;
+            
+            tableDiv.innerHTML = tableHTML;
+        } else {
+            tableDiv.innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-inbox w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+                    <p class="text-gray-500">ไม่มีข้อมูลคำขอ ก.พ. 7</p>
+                    <p class="text-sm text-gray-400 mt-2">สถานะ: ${data.status}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        tableDiv.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-exclamation-triangle w-12 h-12 text-red-400 mx-auto mb-4"></i>
+                <p class="text-red-600">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}

@@ -5,14 +5,15 @@ from linebot.v3.webhook import WebhookParser
 from linebot.v3.messaging import AsyncApiClient, AsyncMessagingApi, Configuration
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import (
-    MessageEvent, TextMessageContent, FollowEvent, UnfollowEvent,
-    JoinEvent, LeaveEvent, PostbackEvent
+    MessageEvent, TextMessageContent, ImageMessageContent, FileMessageContent,
+    FollowEvent, UnfollowEvent, JoinEvent, LeaveEvent, PostbackEvent
 )
 
 from app.core.config import settings
 from app.db.database import get_db
 from app.services.line_handler_enhanced import (
-    handle_message_enhanced, handle_follow_event, handle_unfollow_event
+    handle_message_enhanced, handle_image_message_enhanced, handle_file_message_enhanced,
+    handle_follow_event, handle_unfollow_event
 )
 from app.db.crud_enhanced import log_system_event
 
@@ -131,10 +132,30 @@ async def line_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                 event_type = type(event).__name__
                 print(f"Processing event type: {event_type}")
                 
-                if isinstance(event, MessageEvent) and isinstance(event.message, TextMessageContent):
-                    # Message events - ใช้ enhanced handler
-                    await handle_message_enhanced(event, db, line_bot_api)
-                    processed_events += 1
+                if isinstance(event, MessageEvent):
+                    if isinstance(event.message, TextMessageContent):
+                        # Text message events
+                        await handle_message_enhanced(event, db, line_bot_api)
+                        processed_events += 1
+                    elif isinstance(event.message, ImageMessageContent):
+                        # Image message events
+                        await handle_image_message_enhanced(event, db, line_bot_api)
+                        processed_events += 1
+                    elif isinstance(event.message, FileMessageContent):
+                        # File message events
+                        await handle_file_message_enhanced(event, db, line_bot_api)
+                        processed_events += 1
+                    else:
+                        # Other message types (audio, video, sticker, etc.)
+                        await log_system_event(
+                            db=db,
+                            level="info",
+                            category="line_webhook",
+                            subcategory="unsupported_message_type",
+                            message=f"Unsupported message type: {type(event.message).__name__}",
+                            details={"message_type": type(event.message).__name__},
+                            request_id=request_id
+                        )
                     
                 elif isinstance(event, FollowEvent):
                     # Friend follow events

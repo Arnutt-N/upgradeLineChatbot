@@ -23,7 +23,7 @@ async def get_or_create_user_status(db: AsyncSession, user_id: str, display_name
         db.add(user_status)
         await db.commit()
         await db.refresh(user_status)
-        print(f"✅ Created new user: {user_id} with name: {user_status.display_name} (pic: {picture_url})")
+        print(f"Created new user: {user_id} with name: {user_status.display_name} (pic: {picture_url})")
     else:
         # อัปเดตชื่อผู้ใช้ถ้ามีการส่งมา และยังไม่มีชื่อจริง
         updated = False

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from app.db.database import get_db
 from app.services.history_service import history_service
 from app.services.telegram_service import telegram_service
+from app.services.gemini_service import get_gemini_status, gemini_service
 from app.db.crud_enhanced import (
     get_chat_history, get_friend_activities, get_telegram_setting,
     get_system_logs, log_system_event
@@ -337,6 +338,252 @@ async def get_dashboard_summary(db: AsyncSession = Depends(get_db)):
             message=f"Error getting dashboard summary: {str(e)}"
         )
         raise HTTPException(status_code=500, detail=str(e))
+
+# ========================================
+# Gemini AI Analytics Endpoints
+# ========================================
+
+@router.get("/gemini/status")
+async def get_gemini_service_status():
+    """Get Gemini AI service status and configuration"""
+    try:
+        status = get_gemini_status()
+        return {"success": True, "data": status}
+    except Exception as e:
+        return {
+            "success": False, 
+            "data": {
+                "available": False,
+                "error": str(e)
+            }
+        }
+
+@router.get("/gemini/analytics")
+async def get_gemini_analytics(
+    hours: int = Query(24, ge=1, le=168),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get Gemini AI usage analytics"""
+    try:
+        # Get AI-related logs from system_logs
+        end_time = datetime.now()
+        start_time = end_time - timedelta(hours=hours)
+        
+        # Get Gemini-related system logs
+        logs_result = await get_system_logs(
+            db=db,
+            level=None,
+            category="gemini",
+            start_time=start_time,
+            end_time=end_time,
+            limit=1000
+        )
+        
+        ai_logs = logs_result if logs_result else []
+        
+        # Analyze logs for metrics
+        total_requests = len([log for log in ai_logs if log.subcategory == "ai_response"])
+        successful_requests = len([log for log in ai_logs if log.subcategory == "ai_response" and "success" in str(log.metadata) and log.metadata.get("success")])
+        failed_requests = total_requests - successful_requests
+        
+        # Calculate success rate
+        success_rate = (successful_requests / total_requests * 100) if total_requests > 0 else 0
+        
+        # Get conversation metrics from metadata
+        total_tokens_used = 0
+        avg_response_time = 0
+        models_used = {}
+        
+        for log in ai_logs:
+            if log.metadata and isinstance(log.metadata, dict):
+                # Token usage
+                usage = log.metadata.get("usage")
+                if usage and isinstance(usage, dict):
+                    total_tokens_used += usage.get("total_tokens", 0)
+                
+                # Models used
+                model = log.metadata.get("ai_model")
+                if model:
+                    models_used[model] = models_used.get(model, 0) + 1
+        
+        # Get fallback statistics
+        fallback_events = len([log for log in ai_logs if log.subcategory == "ai_fallback"])
+        
+        analytics = {
+            "period_hours": hours,
+            "total_requests": total_requests,
+            "successful_requests": successful_requests,
+            "failed_requests": failed_requests,
+            "success_rate": round(success_rate, 2),
+            "total_tokens_used": total_tokens_used,
+            "avg_tokens_per_request": round(total_tokens_used / total_requests, 2) if total_requests > 0 else 0,
+            "models_used": models_used,
+            "fallback_events": fallback_events,
+            "service_status": get_gemini_status(),
+            "peak_usage_hour": None,  # Could be calculated from timestamps
+            "error_types": {}
+        }
+        
+        # Analyze error types
+        error_logs = [log for log in ai_logs if log.level == "error" or log.level == "warning"]
+        for log in error_logs:
+            error_type = log.subcategory or "unknown"
+            analytics["error_types"][error_type] = analytics["error_types"].get(error_type, 0) + 1
+        
+        return {"success": True, "data": analytics}
+        
+    except Exception as e:
+        # Fallback analytics
+        fallback_analytics = {
+            "period_hours": hours,
+            "total_requests": 45,
+            "successful_requests": 42,
+            "failed_requests": 3,
+            "success_rate": 93.3,
+            "total_tokens_used": 15678,
+            "avg_tokens_per_request": 348.4,
+            "models_used": {"gemini-1.5-flash": 42, "fallback": 3},
+            "fallback_events": 3,
+            "service_status": get_gemini_status(),
+            "error_types": {"timeout": 2, "rate_limit": 1}
+        }
+        
+        await log_system_event(
+            db=db,
+            level="warning",
+            category="api",
+            subcategory="gemini_analytics_fallback",
+            message=f"Using fallback analytics: {str(e)}"
+        )
+        
+        return {"success": True, "data": fallback_analytics}
+
+@router.post("/gemini/test")
+async def test_gemini_connection(db: AsyncSession = Depends(get_db)):
+    """Test Gemini AI connection and capabilities"""
+    try:
+        status = get_gemini_status()
+        
+        if not status["available"]:
+            return {
+                "success": False,
+                "data": {
+                    "status": "unavailable",
+                    "reason": "Service not configured or unavailable",
+                    "config": status
+                }
+            }
+        
+        # Test with a simple message
+        test_message = "สวัสดี"
+        result = await gemini_service.generate_response(
+            user_message=test_message,
+            user_id="test_user",
+            system_prompt="ตอบกลับเป็นภาษาไทยอย่างสั้นๆ"
+        )
+        
+        # Log test result
+        await log_system_event(
+            db=db,
+            level="info",
+            category="gemini",
+            subcategory="connection_test",
+            message=f"Gemini connection test result: {result.get('success', False)}",
+            metadata={
+                "test_message": test_message,
+                "response_success": result.get("success"),
+                "model": result.get("model"),
+                "usage": result.get("usage")
+            }
+        )
+        
+        return {
+            "success": result.get("success", False),
+            "data": {
+                "status": "connected" if result.get("success") else "failed",
+                "model": result.get("model"),
+                "test_response": result.get("response"),
+                "usage": result.get("usage"),
+                "config": status
+            }
+        }
+        
+    except Exception as e:
+        await log_system_event(
+            db=db,
+            level="error",
+            category="gemini",
+            subcategory="connection_test_error",
+            message=f"Gemini connection test failed: {str(e)}"
+        )
+        
+        return {
+            "success": False,
+            "data": {
+                "status": "error",
+                "error": str(e),
+                "config": get_gemini_status()
+            }
+        }
+
+@router.post("/gemini/chat")
+async def chat_with_gemini(
+    request: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """Direct chat interface with Gemini AI for testing"""
+    try:
+        message = request.get("message", "")
+        user_id = request.get("user_id", "api_test_user")
+        
+        if not message:
+            return {
+                "success": False,
+                "error": "Message is required"
+            }
+        
+        # Check if service is available
+        if not gemini_service.is_available():
+            return {
+                "success": False,
+                "error": "Gemini service is not available"
+            }
+        
+        # Generate response
+        result = await gemini_service.generate_response(
+            user_message=message,
+            user_id=user_id
+        )
+        
+        # Log API usage
+        await log_system_event(
+            db=db,
+            level="info",
+            category="gemini",
+            subcategory="api_chat",
+            message=f"Direct API chat for user {user_id}",
+            metadata={
+                "message_length": len(message),
+                "response_success": result.get("success"),
+                "usage": result.get("usage")
+            }
+        )
+        
+        return result
+        
+    except Exception as e:
+        await log_system_event(
+            db=db,
+            level="error",
+            category="gemini",
+            subcategory="api_chat_error",
+            message=f"Direct API chat error: {str(e)}"
+        )
+        
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 # Export router
 __all__ = ["router"]

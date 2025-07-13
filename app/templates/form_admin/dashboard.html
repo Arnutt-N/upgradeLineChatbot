@@ -1,0 +1,140 @@
+{% extends "form_admin/base.html" %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-sm font-medium text-gray-600">คำขอทั้งหมดวันนี้</div>
+                <div class="text-3xl font-bold text-gray-900">{{ stats.total_today }}</div>
+                <div class="text-sm text-gray-500">ข้อมูลจริง</div>
+            </div>
+            <div class="p-3 bg-blue-100 rounded-full">
+                <i class="fas fa-file-plus w-6 h-6 text-blue-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-sm font-medium text-gray-600">รอดำเนินการ</div>
+                <div class="text-3xl font-bold text-orange-600">{{ stats.pending_count }}</div>
+                <div class="text-sm text-gray-500">คำขอใหม่</div>
+            </div>
+            <div class="p-3 bg-orange-100 rounded-full">
+                <i class="fas fa-clock w-6 h-6 text-orange-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-sm font-medium text-gray-600">กำลังดำเนินการ</div>
+                <div class="text-3xl font-bold text-blue-600">{{ stats.processing_count }}</div>
+                <div class="text-sm text-gray-500">อยู่ในขั้นตอน</div>
+            </div>
+            <div class="p-3 bg-blue-100 rounded-full">
+                <i class="fas fa-sync-alt w-6 h-6 text-blue-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-sm font-medium text-gray-600">เสร็จสิ้นแล้ว</div>
+                <div class="text-3xl font-bold text-green-600">{{ stats.completed_count }}</div>
+                <div class="text-sm text-gray-500">ทั้งหมด</div>
+            </div>
+            <div class="p-3 bg-green-100 rounded-full">
+                <i class="fas fa-check-circle w-6 h-6 text-green-600"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">การดำเนินการด่วน</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <a href="/form-admin/forms/kp7" class="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-left block">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-indigo-100 rounded-lg">
+                    <i class="fas fa-file-alt w-5 h-5 text-indigo-600"></i>
+                </div>
+                <div>
+                    <div class="font-medium text-gray-900">จัดการคำขอ ก.พ. 7</div>
+                    <div class="text-sm text-gray-500">ระบบพร้อมใช้งาน</div>
+                </div>
+            </div>
+        </a>
+
+        <a href="/form-admin/forms/id-card" class="p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors text-left block">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-green-100 rounded-lg">
+                    <i class="fas fa-id-card w-5 h-5 text-green-600"></i>
+                </div>
+                <div>
+                    <div class="font-medium text-gray-900">จัดการบัตรประจำตัว</div>
+                    <div class="text-sm text-gray-500">ระบบพร้อมใช้งาน</div>
+                </div>
+            </div>
+        </a>
+
+        <a href="/form-admin/reports" class="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors text-left block">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-purple-100 rounded-lg">
+                    <i class="fas fa-chart-bar w-5 h-5 text-purple-600"></i>
+                </div>
+                <div>
+                    <div class="font-medium text-gray-900">ดูรายงาน</div>
+                    <div class="text-sm text-gray-500">สถิติและรายงาน</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Recent Forms -->
+<div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">คำขอล่าสุด</h3>
+    <div class="text-center py-8 text-gray-500">
+        <i class="fas fa-inbox w-12 h-12 mx-auto mb-4 text-gray-300"></i>
+        <p>ข้อมูลคำขอจะแสดงที่นี่เมื่อเชื่อมต่อ API</p>
+        <p class="text-sm mt-2">Database พร้อม - มีข้อมูลตัวอย่าง {{ stats.total_count }} คำขอ</p>
+    </div>
+</div>
+
+<!-- Status -->
+<div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">สถานะระบบ</h3>
+    <div class="space-y-4">
+        <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span class="font-medium text-green-900">Forms Admin System</span>
+            </div>
+            <span class="text-sm text-green-600 font-medium">ทำงานปกติ</span>
+        </div>
+        
+        <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span class="font-medium text-blue-900">Database Connection</span>
+            </div>
+            <span class="text-sm text-blue-600 font-medium">เชื่อมต่อแล้ว</span>
+        </div>
+        
+        <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span class="font-medium text-green-900">Sample Data</span>
+            </div>
+            <span class="text-sm text-green-600 font-medium">{{ stats.total_count }} คำขอ</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

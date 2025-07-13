@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.db.database import create_db_and_tables
-from app.api.routers import webhook, admin
+from app.api.routers import webhook, admin, form_admin
 
 app = FastAPI(
     title=settings.APP_TITLE,
@@ -28,6 +28,7 @@ async def on_shutdown():
 
 # Include routers
 app.include_router(admin.router)
+app.include_router(form_admin.router)
 app.include_router(webhook.router)
 
 # Development endpoint for testing static files

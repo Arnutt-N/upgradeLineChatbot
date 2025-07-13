@@ -31,6 +31,10 @@ app.include_router(admin.router)
 app.include_router(form_admin.router)
 app.include_router(webhook.router)
 
+# Import enhanced API
+from app.api.routers import enhanced_api
+app.include_router(enhanced_api.router)
+
 # Development endpoint for testing static files
 @app.get("/test-static")
 async def test_static():

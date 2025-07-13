@@ -1,3 +1,4 @@
+# Python 3.13 compatible requirements
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 gunicorn==21.2.0
@@ -9,7 +10,9 @@ aiosqlite==0.19.0
 jinja2==3.1.2
 python-multipart==0.0.6
 aiofiles==23.2.1
+# Use latest pandas that supports Python 3.13
 pandas>=2.2.0
-openpyxl==3.1.2
-google-generativeai==0.3.2
-google-ai-generativelanguage==0.4.0
+openpyxl>=3.1.2
+# Remove Gemini for now to test basic deployment
+# google-generativeai==0.3.2
+# google-ai-generativelanguage==0.4.0

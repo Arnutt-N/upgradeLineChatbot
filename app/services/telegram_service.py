@@ -96,13 +96,13 @@ class TelegramService:
                     "message": notification.message,
                     "user_name": "ไม่ระบุ",
                     "user_id": notification.user_id or "ไม่ระบุ",
-                    "timestamp": notification.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    "timestamp": notification.created_at.strftime("%Y-%m-%d %H:%M:%S")
                 }
                 
-                # เพิ่มข้อมูลจาก data field
-                if notification.data:
+                # เพิ่มข้อมูลจาก extra_data field
+                if notification.extra_data:
                     try:
-                        extra_data = json.loads(notification.data)
+                        extra_data = json.loads(notification.extra_data)
                         template_data.update(extra_data)
                         
                         # ดึงชื่อจาก user_profile ถ้ามี

@@ -254,6 +254,56 @@
             font-weight: 600;
         }
 
+        .enhanced-nav {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-right: var(--space-3);
+        }
+
+        .enhanced-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .enhanced-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .enhanced-btn i {
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .enhanced-nav {
+                margin-right: var(--space-2);
+            }
+            
+            .enhanced-btn span {
+                display: none;
+            }
+            
+            .enhanced-btn {
+                padding: var(--space-2);
+                min-width: 40px;
+                justify-content: center;
+            }
+        }
+
         .status-dot {
             width: 6px;
             height: 6px;
@@ -1351,6 +1401,16 @@
                 <h1 class="app-title">💬 Admin Live Chat</h1>
             </div>
             <div class="header-right">
+                <div class="enhanced-nav">
+                    <a href="/ui/dashboard" class="enhanced-btn" title="Enhanced Dashboard">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/ui/analytics" class="enhanced-btn" title="Analytics">
+                        <i class="fas fa-analytics"></i>
+                        <span>Analytics</span>
+                    </a>
+                </div>
                 <div class="status-indicator">
                     <div class="status-dot"></div>
                     <span>ออนไลน์</span>

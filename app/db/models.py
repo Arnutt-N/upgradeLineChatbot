@@ -170,6 +170,7 @@ class SystemLogs(Base):
     id = Column(String, primary_key=True, index=True)
     log_level = Column(String, nullable=False, index=True)  # 'debug', 'info', 'warning', 'error', 'critical'
     category = Column(String, nullable=False, index=True)  # 'line_webhook', 'telegram', 'admin', 'system', 'database'
+    subcategory = Column(String, index=True)
     module = Column(String, index=True)  # ชื่อ module ที่เกิด log
     function_name = Column(String)  # ชื่อ function ที่เกิด log
     message = Column(Text, nullable=False)
@@ -190,7 +191,7 @@ class SharedNotification(Base):
     id = Column(String, primary_key=True, index=True)
     from_system = Column(String, nullable=False)  # 'forms' หรือ 'line_admin'
     to_system = Column(String, nullable=False)
-    type = Column(String, nullable=False)  # 'form_update', 'chat_alert'
+    notification_type = Column(String, nullable=False)  # 'form_update', 'chat_alert'
     data = Column(Text)  # JSON data
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

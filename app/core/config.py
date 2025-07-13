@@ -49,5 +49,4 @@ class Settings:
 
 settings = Settings()
 
-# Validate settings on import
-settings.validate_required_settings()
+# Note: Settings validation moved to webhook endpoints to prevent startup failures

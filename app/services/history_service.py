@@ -349,12 +349,12 @@ class HistoryService:
         
         # Performance metrics
         perf_query = select(
-            func.avg(SystemLogs.performance_ms),
-            func.max(SystemLogs.performance_ms),
+            func.avg(SystemLogs.execution_time),
+            func.max(SystemLogs.execution_time),
             func.count(SystemLogs.id)
         ).where(
             and_(
-                SystemLogs.performance_ms.isnot(None),
+                SystemLogs.execution_time.isnot(None),
                 SystemLogs.timestamp >= start_time
             )
         )

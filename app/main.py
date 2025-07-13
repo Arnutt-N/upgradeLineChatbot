@@ -1,5 +1,6 @@
 # app/main.py
 import uvicorn
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
@@ -35,6 +36,35 @@ app.include_router(webhook.router)
 from app.api.routers import enhanced_api, ui_router
 app.include_router(enhanced_api.router)
 app.include_router(ui_router.router)
+
+# Health check endpoint for Render
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for deployment monitoring"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT
+    }
+
+# Root endpoint
+@app.get("/")
+async def root():
+    """Root endpoint with service information"""
+    return {
+        "service": "LINE Chatbot Admin System",
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT,
+        "endpoints": {
+            "admin": "/admin",
+            "dashboard": "/ui/dashboard", 
+            "analytics": "/ui/analytics",
+            "api": "/api/enhanced",
+            "docs": "/docs",
+            "health": "/health"
+        }
+    }
 
 # Development endpoint for testing static files
 @app.get("/test-static")

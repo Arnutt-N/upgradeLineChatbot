@@ -2,245 +2,281 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# คู่มือการพัฒนาและวิเคราะห์โค้ดด้วย Gemini CLI
+# Claude Code Guidelines for HR LINE Chatbot System
 
-เอกสารนี้เป็นการรวบรวมข้อมูลสำคัญสำหรับการพัฒนาและวิเคราะห์โค้ดในโปรเจกต์นี้ โดยครอบคลุมตั้งแต่คำสั่งพื้นฐานในการพัฒนา, ภาพรวมสถาปัตยกรรมของระบบ, ไปจนถึงการใช้เครื่องมือ AI อย่าง Gemini CLI เพื่อวิเคราะห์โค้ดเบสขนาดใหญ่
-
----
-
-## การใช้ Gemini CLI เพื่อวิเคราะห์โค้ดเบสขนาดใหญ่
-
-เมื่อต้องการวิเคราะห์โค้ดเบสขนาดใหญ่หรือไฟล์จำนวนมากที่อาจเกินขีดจำกัดของ Context Window ทั่วไป การใช้ Gemini CLI จะเป็นเครื่องมือที่มีประสิทธิภาพสูง เนื่องจากมี Context Window ที่ใหญ่มาก ใช้คำสั่ง `gemini -p` เพื่อดึงความสามารถนี้มาใช้งาน
-
-### Syntax การระบุไฟล์และไดเรกทอรี
-
-คุณสามารถแนบไฟล์และไดเรกทอรีใน prompt ของ Gemini ได้โดยใช้ `@` syntax โดยระบุ path แบบ relative จากตำแหน่งที่คุณรันคำสั่ง `gemini`
-
-### **ตัวอย่าง**
-
-* **วิเคราะห์ไฟล์เดียว:**
-    ```bash
-    gemini -p "@src/main.py อธิบายวัตถุประสงค์และโครงสร้างของไฟล์นี้"
-    ```
-* **วิเคราะห์หลายไฟล์:**
-    ```bash
-    gemini -p "@package.json @src/index.js วิเคราะห์ dependencies ที่ใช้ในโค้ด"
-    ```
-* **วิเคราะห์ทั้งไดเรกทอรี:**
-    ```bash
-    gemini -p "@src/ สรุปสถาปัตยกรรมของโค้ดเบสนี้"
-    ```
-* **วิเคราะห์หลายไดเรกทอรี:**
-    ```bash
-    gemini -p "@src/ @tests/ วิเคราะห์ test coverage สำหรับ source code"
-    ```
-* **วิเคราะห์ไดเรกทอรีปัจจุบันและไดเรกทอรีย่อยทั้งหมด:**
-    ```bash
-    gemini -p "@./ ให้ภาพรวมของโปรเจกต์นี้ทั้งหมด"
-    ```
-* **หรือใช้ flag `--all_files`:**
-    ```bash
-    gemini --all_files -p "วิเคราะห์โครงสร้างโปรเจกต์และ dependencies"
-    ```
-
-### **ตัวอย่างการตรวจสอบการ Implement**
-
-นี่คือตัวอย่างการใช้ Gemini CLI เพื่อตรวจสอบการ implement ฟีเจอร์ต่างๆ ในโค้ดเบสนี้:
-
-* **ตรวจสอบว่าฟีเจอร์ถูก implement แล้วหรือไม่:**
-    ```bash
-    gemini -p "@src/ @lib/ ฟีเจอร์ dark mode ถูก implement ในโค้ดเบสนี้แล้วหรือยัง? แสดงไฟล์และฟังก์ชันที่เกี่ยวข้อง"
-    ```
-* **ตรวจสอบการ implement ระบบยืนยันตัวตน:**
-    ```bash
-    gemini -p "@src/ @middleware/ มีการ implement JWT authentication หรือไม่? แสดงรายการ endpoint และ middleware ทั้งหมดที่เกี่ยวกับ auth"
-    ```
-* **ตรวจสอบ pattern ที่เฉพาะเจาะจง:**
-    ```bash
-    gemini -p "@src/ มี React hooks ที่จัดการ WebSocket connections หรือไม่? แสดงรายการพร้อม path ของไฟล์"
-    ```
-* **ตรวจสอบการจัดการ error:**
-    ```bash
-    gemini -p "@src/ @api/ มีการ implement error handling ที่เหมาะสมสำหรับ API endpoints ทั้งหมดหรือไม่? แสดงตัวอย่างของ try-catch blocks"
-    ```
-* **ตรวจสอบการทำ rate limiting:**
-    ```bash
-    gemini -p "@backend/ @middleware/ มีการ implement rate limiting สำหรับ API หรือไม่? แสดงรายละเอียดการ implement"
-    ```
-* **ตรวจสอบกลยุทธ์การ caching:**
-    ```bash
-    gemini -p "@src/ @lib/ @services/ มีการ implement Redis caching หรือไม่? แสดงรายการฟังก์ชันที่เกี่ยวกับ cache และการใช้งานทั้งหมด"
-    ```
-* **ตรวจสอบมาตรการความปลอดภัยที่เฉพาะเจาะจง:**
-    ```bash
-    gemini -p "@src/ @api/ มีการป้องกัน SQL injection หรือไม่? แสดงวิธีการ sanitize user inputs"
-    ```
-* **ตรวจสอบ test coverage สำหรับฟีเจอร์:**
-    ```bash
-    gemini -p "@src/payment/ @tests/ โมดูลประมวลผลการชำระเงินได้รับการทดสอบครบถ้วนหรือไม่? แสดงรายการ test cases ทั้งหมด"
-    ```
-
-### **ควรใช้ Gemini CLI เมื่อใด**
-
-* เมื่อต้องการวิเคราะห์โค้ดเบสทั้งหมดหรือไดเรกทอรีขนาดใหญ่
-* เมื่อต้องการเปรียบเทียบไฟล์ขนาดใหญ่หลายๆ ไฟล์
-* เมื่อต้องการทำความเข้าใจ pattern หรือสถาปัตยกรรมในภาพรวมของโปรเจกต์
-* เมื่อ Context Window ของเครื่องมืออื่นไม่เพียงพอต่องาน
-* เมื่อทำงานกับไฟล์ที่มีขนาดรวมกันมากกว่า 100KB
-* เมื่อต้องการตรวจสอบว่าฟีเจอร์, pattern, หรือมาตรการความปลอดภัยที่เฉพาะเจาะจงได้ถูก implement แล้วหรือไม่
-* เมื่อต้องการตรวจสอบการมีอยู่ของ coding pattern บางอย่างทั่วทั้งโค้ดเบส
-
-### **ข้อควรจำ**
-
-* Path ที่ใช้กับ `@` syntax จะเป็นแบบ relative เทียบกับ working directory ปัจจุบันที่คุณรันคำสั่ง `gemini`
-* CLI จะแนบเนื้อหาของไฟล์เข้าไปใน context โดยตรง
-* Gemini มี Context Window ขนาดใหญ่ที่สามารถรองรับโค้ดเบสทั้งโปรเจกต์ซึ่งอาจทำให้โมเดลอื่น ๆ มีปัญหาได้
-* ในการตรวจสอบการ implement ควรระบุสิ่งที่ต้องการค้นหาให้ชัดเจนและเฉพาะเจาะจงเพื่อให้ได้ผลลัพธ์ที่แม่นยำ
+This document provides essential guidance for Claude Code when working with this repository, including development commands, architecture overview, and **critical instructions for using Gemini CLI for large codebase analysis**.
 
 ---
 
-## ภาพรวมการพัฒนาและโปรเจกต์
+## 🤖 **CRITICAL: Gemini CLI Integration for Large Codebase Analysis**
 
-ส่วนนี้ให้รายละเอียดเกี่ยวกับคำสั่งในการพัฒนา, สถาปัตยกรรม, และรายละเอียดการ implement ที่สำคัญของโปรเจกต์นี้
+**When Claude Code needs to gather information about large parts of the codebase that exceed its context window, it MUST use Gemini CLI in non-interactive mode with the `-p` parameter to get comprehensive analysis.**
 
-### คำสั่งในการพัฒนา (Development Commands)
+### **When to Use Gemini CLI:**
+- Analyzing entire directories or multiple large files
+- Understanding architecture patterns across the codebase
+- Checking implementation status of features across multiple files
+- Comparing code patterns between different modules
+- Gathering comprehensive project overview
+- Any task requiring analysis of >100KB of code
 
-#### **การรันแอปพลิเคชัน**
+### **Gemini CLI Non-Interactive Mode Syntax:**
 
-* **Development server พร้อม auto-reload:**
-    ```bash
-    python app/main.py
-    ```
-* **Production server:**
-    ```bash
-    uvicorn app.main:app --host 0.0.0.0 --port 8000
-    ```
-* **รันผ่าน Docker:**
-    ```bash
-    docker-compose up --build
-    ```
+**Basic Pattern:**
+```bash
+gemini -p "@path/to/files PROMPT_HERE"
+```
 
-#### **การจัดการฐานข้อมูล**
+**Key Examples for This Project:**
 
-* **รัน database migration:**
-    ```bash
-    python run_migration.py
-    ```
-* **ตรวจสอบสถานะฐานข้อมูล:**
-    ```bash
-    python check_database.py
-    ```
-* **สำรองข้อมูลฐานข้อมูล:**
-    ```bash
-    python create_sample_data.py
-    ```
-* **ทดสอบการเชื่อมต่อฐานข้อมูล:**
-    ```bash
-    python test_db.py
-    ```
-* **Backfill ข้อมูลรูปโปรไฟล์:**
-    ```bash
-    python backfill_avatars_simple.py
-    ```
+**1. Architecture Overview:**
+```bash
+gemini -p "@app/ @static/ @templates/ Provide a comprehensive architecture overview of this HR LINE Chatbot system. Include main components, data flow, and key technologies used."
+```
 
-#### **การทดสอบและตรวจสอบความถูกต้อง**
+**2. Feature Implementation Check:**
+```bash
+gemini -p "@app/ Check if authentication system is fully implemented. Show all auth-related files, functions, and security measures."
+```
 
-* **รันชุดทดสอบทั้งหมด:**
-    ```bash
-    python test_enhanced_system.py
-    ```
-* **ทดสอบระบบรูปโปรไฟล์:**
-    ```bash
-    python test_avatar_system.py
-    ```
-* **ตรวจสอบข้อมูลผู้ใช้:**
-    ```bash
-    python check_users.py
-    ```
-* **ทดสอบการปรับปรุง UI:**
-    ```bash
-    python test_ui_enhancement.py
-    ```
+**3. Database Schema Analysis:**
+```bash
+gemini -p "@app/db/ @migrations/ Analyze the complete database schema. List all tables, relationships, and migration history."
+```
 
-#### **Batch Operations (สำหรับ Windows)**
+**4. API Endpoints Inventory:**
+```bash
+gemini -p "@app/api/ List all API endpoints in this system. Group by router and include HTTP methods, paths, and purposes."
+```
 
-มีไฟล์ `.bat` สำหรับการทำงานที่รวดเร็ว ดังนี้:
+**5. Forms System Analysis:**
+```bash
+gemini -p "@app/api/routers/form_admin.py @templates/form_admin/ @static/form_admin/ Analyze the complete Forms Admin system implementation including frontend and backend components."
+```
 
-* `run_test.bat`: ทดสอบการ migration ฐานข้อมูล
-* `run_migration.bat`: รันการ migration ฐานข้อมูล
-* `run_backfill.bat`: รันการ backfill รูปโปรไฟล์
-* `run_check_users.bat`: ตรวจสอบสถานะผู้ใช้
+**6. LINE Bot Integration Check:**
+```bash
+gemini -p "@app/api/routers/webhook.py @app/services/ Check LINE Bot integration implementation. Show webhook handling, message processing, and admin features."
+```
 
----
+**7. Security Implementation Review:**
+```bash
+gemini -p "@app/ @deployment/ Review all security implementations including authentication, session management, environment variables, and production configurations."
+```
 
-## ภาพรวมสถาปัตยกรรม (Architecture Overview)
+**8. Deployment Configuration Analysis:**
+```bash
+gemini -p "@render.yaml @Dockerfile @deployment/ @.env.* Analyze all deployment configurations for Render.com, Docker, and environment setups."
+```
 
-### โครงสร้างหลักของแอปพลิเคชัน
+**9. Testing Coverage Check:**
+```bash
+gemini -p "@test*.py @*test*.py @app/ Analyze testing coverage. List all test files and what components they cover."
+```
 
-นี่คือแอปพลิเคชัน LINE Bot ที่พัฒนาด้วย FastAPI พร้อมกับหน้าแอดมินสองระบบ
+**10. Documentation Completeness:**
+```bash
+gemini -p "@*.md @deployment/ Check documentation completeness. List all phases, guides, and missing documentation areas."
+```
 
-**ส่วนประกอบหลัก:**
+### **Mandatory Usage Scenarios:**
 
-* **การเชื่อมต่อ LINE Bot**: ระบบแชทแบบเรียลไทม์พร้อมการจัดการ webhook
-* **ระบบแอดมินสองส่วน**:
-    * `/admin` - หน้า Live chat สำหรับการสนทนาใน LINE Bot
-    * `/form-admin` - ระบบจัดการฟอร์มสำหรับคำขอ KP7 และบัตรประชาชน
-* **ระบบวิเคราะห์ข้อมูลขั้นสูง**: Dashboard พร้อมข้อมูลและกราฟแบบเรียลไทม์
-* **การเชื่อมต่อ Telegram**: ระบบแจ้งเตือนสำหรับแอดมิน
+**Claude Code MUST use Gemini CLI when:**
+- User asks about overall system architecture
+- Need to check implementation across multiple files/directories  
+- Analyzing feature completeness or gaps
+- Comparing patterns between different modules
+- Gathering comprehensive project status
+- Creating summaries of large codebases
+- Checking security implementations across the system
+- Analyzing deployment readiness
 
-### สถาปัตยกรรมฐานข้อมูล
+### **Command Template for Claude Code:**
+```bash
+# Always use this pattern when analysis exceeds context limits
+gemini -p "@relevant/paths SPECIFIC_ANALYSIS_QUESTION"
+```
 
-**ตารางหลัก:**
-
-* `user_status` - โปรไฟล์ผู้ใช้ LINE พร้อม URL รูปโปรไฟล์และชื่อที่แสดง
-* `chat_messages` - ประวัติการแชทพร้อมข้อความจากแอดมิน/ผู้ใช้/บอท
-* `form_submissions` - คำขอฟอร์ม (KP7, บัตรประชาชน) พร้อมสถานะของ workflow
-* **ตารางสำหรับ Tracking ขั้นสูง** (5 ตารางใหม่):
-    * `chat_history` - ข้อมูลวิเคราะห์การแชทอย่างละเอียด
-    * `friend_activities` - การติดตามการ follow/unfollow
-    * `telegram_notifications` - คิวและสถานะการแจ้งเตือน
-    * `system_logs` - การบันทึก Log และการ monitor ระบบ
-    * `settings` - การตั้งค่าแบบไดนามิก
-
-### สถาปัตยกรรม Service Layer
-
-**Services หลัก:**
-
-* `line_handler_enhanced.py` - การประมวลผล LINE webhook ขั้นสูงพร้อมการดึงข้อมูลโปรไฟล์
-* `telegram_service.py` - การจัดการคิวและการส่งการแจ้งเตือน
-* `history_service.py` - การรวบรวมและรายงานข้อมูลวิเคราะห์
-* `ws_manager.py` - การเชื่อมต่อ WebSocket สำหรับการอัปเดตหน้าแอดมินแบบเรียลไทม์
-
-### โครงสร้าง API Router
-
-* `webhook.py` - Endpoints สำหรับ LINE Bot webhook
-* `admin.py` - หน้าแอดมินสำหรับ Live chat
-* `form_admin.py` - การจัดการฟอร์มพร้อมระบบยืนยันตัวตน
-* `enhanced_api.py` - API สำหรับข้อมูลวิเคราะห์พร้อมข้อมูลจำลอง (mock data) เป็น fallback
-* `ui_router.py` - การให้บริการไฟล์ template สำหรับ frontend
+**Example Usage in Practice:**
+When user asks: "Is the authentication system complete?"
+Claude should run:
+```bash
+gemini -p "@app/ Check authentication system completeness. Show all auth files, session management, login/logout flows, and security measures implemented."
+```
 
 ---
 
-## รายละเอียดการ Implement ที่สำคัญ
+## 🏗️ **Project Architecture Overview**
 
-### รูปแบบการเชื่อมต่อฐานข้อมูล
+### **HR LINE Chatbot System Components:**
 
-แอปพลิเคชันใช้ async SQLAlchemy พร้อมกับการสร้างฐานข้อมูลและตารางโดยอัตโนมัติเมื่อเริ่มต้น การดำเนินการกับฐานข้อมูลทั้งหมดใช้ Dependency Injection ผ่าน `get_db()` เพื่อการจัดการ session ที่เหมาะสม
+**Main Application Structure:**
+```
+🚀 HR LINE Chatbot System
+├── 📱 LINE Bot Integration (/webhook)
+├── 👥 LINE Admin Interface (/admin) 
+├── 📋 Forms Admin System (/form-admin)
+├── 🗄️ Database Layer (SQLite/PostgreSQL)
+├── 🔐 Authentication System
+└── 🚀 Deployment Configuration
+```
 
-### Flow การทำงานของ LINE Handler ขั้นสูง
+**Key Technologies:**
+- **Backend:** Python 3.11, FastAPI, SQLAlchemy, Uvicorn
+- **Frontend:** Jinja2 templates, Vanilla JS, Modern CSS
+- **Database:** SQLite (dev), PostgreSQL (production ready)
+- **Deployment:** Render.com, Docker support
+- **Integrations:** LINE Messaging API, Telegram Bot API
 
-1.  **การดึงข้อมูลโปรไฟล์ (Profile Enrichment)**: ทุกข้อความจะกระตุ้นการดึงข้อมูลโปรไฟล์พร้อมระบบ fallback รูปโปรไฟล์ 3 ระดับ
-2.  **การ Tracking สองชั้น (Dual Tracking)**: ข้อความจะถูกบันทึกลงทั้งในตาราง `chat_messages` เดิมและตาราง `chat_history` ใหม่
-3.  **กิจกรรมเพื่อน (Friend Activity)**: การ follow/unfollow จะถูกติดตามในตาราง `friend_activities`
-4.  **การแจ้งเตือนผ่าน Telegram**: การกระทำของแอดมินจะกระตุ้นการแจ้งเตือนผ่านระบบคิว
+**Development Status:**
+- ✅ All Phases (0-4 + D) completed
+- ✅ Production deployment ready
+- ✅ Authentication system implemented
+- ✅ Forms management functional
+- ✅ Database migrations complete
 
-### กลยุทธ์ Fallback ของ API
+---
 
-Endpoints สำหรับข้อมูลวิเคราะห์ทั้งหมดมีการ implement fallback ไปยังข้อมูลจำลอง (mock data) เมื่อ service หลักล้มเหลว เพื่อให้แน่ใจว่า UI จะไม่พัง รูปแบบจะเป็นดังนี้:
+## 💻 **Development Commands**
 
-```python
-try:
-    real_data = await service.get_data()
-    return real_data
-except Exception:
-    return mock_data
+### **Application Startup:**
+```bash
+# Development server with auto-reload
+python main.py
+
+# Production server  
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# Docker deployment
+docker-compose up --build
+```
+
+### **Database Management:**
+```bash
+# Run database migrations
+python run_migration.py
+
+# Check database status
+python check_database.py
+
+# Create sample data
+python create_sample_data.py
+
+# Test database connection
+python test_db.py
+
+# Backfill user avatars
+python backfill_avatars_simple.py
+```
+
+### **Testing & Validation:**
+```bash
+# Run complete test suite
+python test_enhanced_system.py
+
+# Test avatar system
+python test_avatar_system.py
+
+# Check user data
+python check_users.py
+
+# Test UI enhancements
+python test_ui_enhancement.py
+```
+
+### **Windows Batch Operations:**
+```bash
+run_test.bat          # Test database migration
+run_migration.bat     # Run database migration  
+run_backfill.bat      # Run avatar backfill
+run_check_users.bat   # Check user status
+```
+
+---
+
+## 🗄️ **Database Architecture**
+
+### **Core Tables:**
+- **user_status** - LINE user profiles with avatars and display names
+- **chat_messages** - Chat history with admin/user/bot messages  
+- **form_submissions** - Form requests (KP7, ID cards) with workflow status
+- **admin_users** - Authentication system for forms admin
+- **shared_notifications** - Cross-system notifications
+- **shared_audit_logs** - System audit trail
+
+### **Advanced Tracking Tables:**
+- **chat_history** - Detailed chat analytics
+- **friend_activities** - Follow/unfollow tracking
+- **telegram_notifications** - Notification queue and status
+- **system_logs** - System monitoring and logs
+- **telegram_settings** - Dynamic configuration
+
+---
+
+## 🔐 **Security Implementation**
+
+### **Authentication System:**
+- Session-based authentication for Forms Admin
+- Role-based access control (Admin/Officer/Viewer)
+- Secure password hashing
+- Session timeout and cleanup
+- CSRF protection
+
+### **API Security:**
+- LINE webhook signature validation
+- Environment variable protection
+- Input validation via FastAPI
+- SQL injection prevention
+- XSS protection headers
+
+---
+
+## 🚀 **Deployment Configuration**
+
+### **Production Ready:**
+- ✅ Render.com configuration (render.yaml)
+- ✅ Docker support (Dockerfile)
+- ✅ Environment templates (.env.render)
+- ✅ Database migrations (deployment/migrate_production.py)
+- ✅ Health checks and monitoring
+- ✅ SSL/HTTPS ready
+
+### **Deployment Files:**
+- **render.yaml** - Render.com service configuration
+- **Dockerfile** - Container deployment
+- **.env.render** - Production environment template
+- **DEPLOYMENT_CHECKLIST.md** - Step-by-step deployment guide
+
+---
+
+## 📋 **Current Project Status**
+
+### **Completed Phases:**
+```
+✅ Phase 0: Backup & Safety
+✅ Phase 1: Forms Admin Structure  
+✅ Phase 2: Database Migration
+✅ Phase 3: Forms Admin Development
+✅ Phase 4: Integration & Testing
+✅ Phase D: Deployment Configuration
+```
+
+### **System URLs:**
+```
+👥 LINE Admin: http://localhost:8001/admin
+📋 Forms Admin: http://localhost:8001/form-admin  
+🔗 LINE Webhook: http://localhost:8001/webhook
+📚 API Docs: http://localhost:8001/docs
+❤️ Health Check: http://localhost:8001/health
+```
+
+### **Ready for Production:**
+- All core features implemented
+- Authentication system complete
+- Database migrations ready
+- Deployment configuration prepared
+- Testing completed successfully
+
+---
+
+**🎯 This system is production-ready and can be deployed immediately to Render.com or other platforms.**

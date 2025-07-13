@@ -12,9 +12,9 @@ from linebot.v3.webhooks import (
 from app.core.config import settings
 from app.db.database import get_db
 from app.services.line_handler_enhanced import (
-    handle_message_enhanced, handle_image_message_enhanced, handle_file_message_enhanced,
     handle_follow_event, handle_unfollow_event
 )
+from app.services.message_handler import process_line_message
 from app.db.crud_enhanced import log_system_event
 
 # ตั้งค่า LINE SDK - สร้างเมื่อต้องใช้
@@ -133,29 +133,12 @@ async def line_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                 print(f"Processing event type: {event_type}")
                 
                 if isinstance(event, MessageEvent):
-                    if isinstance(event.message, TextMessageContent):
-                        # Text message events
-                        await handle_message_enhanced(event, db, line_bot_api)
-                        processed_events += 1
-                    elif isinstance(event.message, ImageMessageContent):
-                        # Image message events
-                        await handle_image_message_enhanced(event, db, line_bot_api)
-                        processed_events += 1
-                    elif isinstance(event.message, FileMessageContent):
-                        # File message events
-                        await handle_file_message_enhanced(event, db, line_bot_api)
+                    # Use the new comprehensive message handler for ALL message types
+                    success = await process_line_message(event, db, line_bot_api)
+                    if success:
                         processed_events += 1
                     else:
-                        # Other message types (audio, video, sticker, etc.)
-                        await log_system_event(
-                            db=db,
-                            level="info",
-                            category="line_webhook",
-                            subcategory="unsupported_message_type",
-                            message=f"Unsupported message type: {type(event.message).__name__}",
-                            details={"message_type": type(event.message).__name__},
-                            request_id=request_id
-                        )
+                        failed_events += 1
                     
                 elif isinstance(event, FollowEvent):
                     # Friend follow events

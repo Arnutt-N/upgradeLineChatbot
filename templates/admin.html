@@ -823,6 +823,7 @@
             box-shadow: var(--shadow-sm);
         }
 
+
         /* Messages Area */
         .messages-container {
             flex: 1;
@@ -1510,8 +1511,8 @@
                     </div>
                     <div class="chat-actions">
                         <div class="mode-toggle">
-                            <button class="mode-option active" data-mode="manual" onclick="toggleMode('manual')" aria-label="Manual mode">Manual</button>
-                            <button class="mode-option" data-mode="bot" onclick="toggleMode('bot')" aria-label="Bot mode">Bot</button>
+                            <button class="mode-option" data-mode="manual" onclick="toggleMode('manual')" aria-label="Manual mode">Manual</button>
+                            <button class="mode-option active" data-mode="bot" onclick="toggleMode('bot')" aria-label="Bot mode">Bot</button>
                         </div>
                     </div>
                 </div>
@@ -1554,13 +1555,13 @@
                 <i class="fas fa-users"></i>
                 <span>ผู้ใช้</span>
             </button>
+            <button class="bottom-nav-item" onclick="toggleMode('manual')" aria-label="Manual mode">
+                <i class="fas fa-user"></i>
+                <span>Manual</span>
+            </button>
             <button class="bottom-nav-item" onclick="toggleMode('bot')" aria-label="Bot mode">
                 <i class="fas fa-robot"></i>
-                <span>บอท</span>
-            </button>
-            <button class="bottom-nav-item" onclick="toggleSettings()" aria-label="Settings">
-                <i class="fas fa-cog"></i>
-                <span>ตั้งค่า</span>
+                <span>Bot</span>
             </button>
         </nav>
     </div>
@@ -1676,7 +1677,7 @@
         const originalTitle = document.title;
         let currentView = 'chat';
         let currentTheme = 'light';
-        let currentMode = 'manual';
+        let currentMode = 'bot';
 
         // Sample user data
         const sampleUsers = new Map([
@@ -1916,6 +1917,34 @@
             loadTheme();
             connectWebSocket();
             loadUsersFromDatabase();
+            
+            // Set bot mode as default active
+            updateBottomNavigation();
+            
+            // Check system status every 30 seconds
+            setInterval(async () => {
+                try {
+                    const statusResponse = await fetch('/admin/status');
+                    if (statusResponse.ok) {
+                        const status = await statusResponse.json();
+                        
+                        // Update status indicator
+                        const statusIndicator = document.querySelector('.status-indicator');
+                        if (status.ai_available && status.database_available) {
+                            statusIndicator.style.background = 'var(--success)';
+                            statusIndicator.querySelector('span').textContent = 'ออนไลน์';
+                        } else {
+                            statusIndicator.style.background = 'var(--warning)';
+                            statusIndicator.querySelector('span').textContent = 'ปัญหาระบบ';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking system status:', error);
+                    const statusIndicator = document.querySelector('.status-indicator');
+                    statusIndicator.style.background = 'var(--error)';
+                    statusIndicator.querySelector('span').textContent = 'ออฟไลน์';
+                }
+            }, 30000);
         });
 
         function initializeApp() {
@@ -2142,7 +2171,10 @@
                     const messagesList = document.getElementById('messagesList');
                     messagesList.innerHTML = ''; // Clear existing messages
                     
+                    console.log('Loaded messages:', data.messages); // Debug logging
+                    
                     data.messages.forEach(msg => {
+                        console.log('Processing message:', msg.message, 'Type:', msg.sender_type, 'Timestamp:', msg.created_at); // Debug logging
                         displayMessage(msg.message, msg.sender_type, msg.created_at);
                     });
                     scrollToBottom();
@@ -2158,7 +2190,36 @@
             const messagesList = document.getElementById('messagesList');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
-            const time = new Date(timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            
+            // Enhanced timestamp handling with Thai timezone
+            let time;
+            try {
+                const date = new Date(timestamp);
+                // Check if the date is valid
+                if (isNaN(date.getTime())) {
+                    time = new Date().toLocaleTimeString('th-TH', { 
+                        timeZone: 'Asia/Bangkok',
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                } else {
+                    time = date.toLocaleTimeString('th-TH', { 
+                        timeZone: 'Asia/Bangkok',
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                }
+            } catch (e) {
+                console.error('Error parsing timestamp:', timestamp, e);
+                time = new Date().toLocaleTimeString('th-TH', { 
+                    timeZone: 'Asia/Bangkok',
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
 
             let avatarContent = '';
             if (type === 'user' && currentUserId) {
@@ -2170,8 +2231,8 @@
                 }
             } else if (type === 'admin') {
                 avatarContent = `<img src="${getDefaultAvatar('admin')}" alt="Admin Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>A</span>';">`;
-            } else if (type === 'bot') {
-                avatarContent = `<img src="${getDefaultAvatar('bot')}" alt="Bot Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>B</span>';">`;
+            } else if (type === 'bot' || type === 'ai_bot') {
+                avatarContent = `<img src="${getDefaultAvatar('bot')}" alt="Bot Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>🤖</span>';">`;
             } else {
                 avatarContent = `<span>${type.charAt(0).toUpperCase()}</span>`;
             }
@@ -2285,6 +2346,19 @@
             } else if (currentView === 'users') {
                 document.querySelector('.bottom-nav-item[onclick="showUsersView()"]').classList.add('active');
             }
+            
+            // Update mode buttons in mobile nav
+            document.querySelectorAll('.bottom-nav-item[onclick*="toggleMode"]').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            if (currentMode === 'manual') {
+                const manualBtn = document.querySelector('.bottom-nav-item[onclick="toggleMode(\'manual\')"]');
+                if (manualBtn) manualBtn.classList.add('active');
+            } else if (currentMode === 'bot') {
+                const botBtn = document.querySelector('.bottom-nav-item[onclick="toggleMode(\'bot\')"]');
+                if (botBtn) botBtn.classList.add('active');
+            }
         }
 
         function toggleEmojiPicker() {
@@ -2315,35 +2389,40 @@
         }
 
         async function toggleMode(mode) {
-            if (!currentUserId) return;
-            
             currentMode = mode;
             console.log('Toggle mode:', mode);
             
-            // Update mode buttons
+            // Update mode buttons in desktop
             document.querySelectorAll('.mode-option').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
             
-            try {
-                // Send mode change to backend
-                await fetch('/admin/toggle_mode', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: currentUserId,
-                        mode: mode
-                    })
-                });
-                
-                // Show notification message
-                const modeText = mode === 'manual' ? 'Manual (แอดมินตอบเอง)' : 'Bot (บอทตอบอัตโนมัติ)';
-                displayMessage(`🔄 เปลี่ยนเป็นโหมด ${modeText} แล้ว`, 'system', new Date().toISOString());
-                
-            } catch (error) {
-                console.error('Error toggling mode:', error);
+            // Update mobile navigation
+            updateBottomNavigation();
+            
+            // Only send to backend if a user is selected
+            if (currentUserId) {
+                try {
+                    // Send mode change to backend
+                    await fetch('/admin/toggle_mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: currentUserId,
+                            mode: mode
+                        })
+                    });
+                    
+                    // Show notification message
+                    const modeText = mode === 'manual' ? 'Manual (แอดมินตอบเอง)' : 'Bot (บอทตอบอัตโนมัติ)';
+                    displayMessage(`🔄 เปลี่ยนเป็นโหมด ${modeText} แล้ว`, 'system', new Date().toISOString());
+                    
+                } catch (error) {
+                    console.error('Error toggling mode:', error);
+                }
             }
         }
+
 
         function showNotification(title, body) {
             if (notificationSettings.sound) {
@@ -2354,8 +2433,38 @@
             }
         }
 
-        function refreshData() {
+        async function refreshData() {
             console.log('Refreshing data...');
+            
+            try {
+                // Check system status
+                const statusResponse = await fetch('/admin/status');
+                if (statusResponse.ok) {
+                    const status = await statusResponse.json();
+                    console.log('System status:', status);
+                    
+                    // Update status indicator
+                    const statusIndicator = document.querySelector('.status-indicator');
+                    if (status.ai_available && status.database_available) {
+                        statusIndicator.style.background = 'var(--success)';
+                        statusIndicator.querySelector('span').textContent = 'ออนไลน์';
+                    } else {
+                        statusIndicator.style.background = 'var(--warning)';
+                        statusIndicator.querySelector('span').textContent = 'ปัญหาระบบ';
+                    }
+                }
+                
+                // Refresh user list
+                await loadUsersFromDatabase();
+                
+                // Refresh current user's messages if selected
+                if (currentUserId) {
+                    await loadMessagesFromDatabase(currentUserId);
+                }
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
         }
 
         function showShortcuts() {

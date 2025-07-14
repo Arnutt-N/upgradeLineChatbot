@@ -3,6 +3,8 @@ from fastapi import APIRouter, Request, HTTPException, Depends, WebSocket, WebSo
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
+import pytz
 from linebot.v3.messaging import (
     AsyncApiClient, AsyncMessagingApi, Configuration, 
     TextMessage, PushMessageRequest
@@ -190,15 +192,78 @@ async def get_user_messages(user_id: str, db: AsyncSession = Depends(get_db)):
         messages = await get_all_chat_history_by_user(db, user_id)
         messages_list = []
         
+        # Thai timezone
+        thai_tz = pytz.timezone('Asia/Bangkok')
+        
         for msg in messages:
+            # Convert timestamp to Thai timezone
+            if msg.timestamp.tzinfo is None:
+                # If naive datetime, assume it's UTC
+                utc_time = pytz.utc.localize(msg.timestamp)
+            else:
+                utc_time = msg.timestamp.astimezone(pytz.utc)
+            
+            thai_time = utc_time.astimezone(thai_tz)
+            
             messages_list.append({
                 "id": msg.id,
                 # แก้ไขชื่อคอลัมน์ให้ตรงกับ ChatHistory
                 "message": msg.message_content,
                 "sender_type": msg.message_type,
-                "created_at": msg.timestamp.isoformat()
+                "created_at": thai_time.isoformat()
             })
         
         return {"messages": messages_list}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/admin/status", summary="API สำหรับตรวจสอบสถานะระบบ")
+async def get_system_status(db: AsyncSession = Depends(get_db)):
+    """ตรวจสอบสถานะระบบและการเชื่อมต่อ"""
+    try:
+        from app.services.gemini_service import check_gemini_availability
+        
+        # Check Gemini AI availability
+        ai_available = await check_gemini_availability()
+        
+        # Check database connection
+        db_available = True
+        try:
+            await db.execute("SELECT 1")
+        except Exception:
+            db_available = False
+        
+        # Check Telegram configuration
+        telegram_configured = bool(settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID)
+        
+        # Thai timezone for system status
+        thai_tz = pytz.timezone('Asia/Bangkok')
+        thai_time = datetime.now(thai_tz)
+        
+        return {
+            "status": "ok",
+            "ai_available": ai_available,
+            "database_available": db_available,
+            "telegram_configured": telegram_configured,
+            "line_configured": bool(settings.LINE_CHANNEL_ACCESS_TOKEN),
+            "timestamp": thai_time.isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/admin/force_bot_mode", summary="API สำหรับบังคับโหมดบอทสำหรับผู้ใช้")
+async def force_bot_mode(payload: EndChatPayload, db: AsyncSession = Depends(get_db)):
+    """บังคับเปลี่ยนโหมดเป็นบอทและออกจาก live chat"""
+    try:
+        await set_live_chat_status(db, payload.user_id, False)
+        await set_chat_mode(db, payload.user_id, 'bot')
+        
+        notification = "🤖 เปลี่ยนเป็นโหมดบอทอัตโนมัติแล้ว"
+        await manager.broadcast({
+            "type": "mode_changed", "userId": payload.user_id,
+            "mode": "bot", "message": notification
+        })
+        
+        return {"status": "ok", "mode": "bot"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -4,7 +4,8 @@
       "Bash(pip install:*)",
       "Bash(env/Scripts/python.exe -m pip install:*)",
       "Bash(python:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }

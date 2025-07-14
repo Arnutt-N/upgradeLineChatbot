@@ -4,10 +4,23 @@ import asyncio
 import os
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
-import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
+# Optional Google AI imports for compatibility
+try:
+    import google.generativeai as genai
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+    GOOGLE_AI_AVAILABLE = True
+except ImportError:
+    GOOGLE_AI_AVAILABLE = False
+    print("⚠️ Google AI not available - Gemini features disabled")
+
 import io
-from PIL import Image as PILImage
+try:
+    from PIL import Image as PILImage
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
 
@@ -18,28 +31,39 @@ from app.db.crud_enhanced import log_system_event, save_chat_to_history
 load_dotenv(".env")
 
 class GeminiService:
-    """Google Gemini AI Integration Service"""
+    """Google Gemini AI Integration Service with fallback support"""
     
     def __init__(self):
         """Initialize Gemini service with API configuration"""
-        self.api_key = os.environ.get("GEMINI_API_KEY") or settings.GEMINI_API_KEY
+        self.api_key = os.environ.get("GEMINI_API_KEY") or getattr(settings, 'GEMINI_API_KEY', None)
         self.model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-2.0-flash')
         self.temperature = getattr(settings, 'GEMINI_TEMPERATURE', 0.7)
         self.max_tokens = getattr(settings, 'GEMINI_MAX_TOKENS', 1000)
         self.enable_safety = getattr(settings, 'GEMINI_ENABLE_SAFETY', True)
         
+        # Check if Google AI is available
+        if not GOOGLE_AI_AVAILABLE:
+            self.model = None
+            print("⚠️ Google AI library not available - Gemini features disabled")
+            return
+            
         # Configure Gemini API
         if self.api_key:
             genai.configure(api_key=self.api_key)
             self._initialize_model()
         else:
             self.model = None
+            print("⚠️ No Gemini API key found - Gemini features disabled")
             
         # Conversation context storage
         self.conversation_contexts: Dict[str, List[Dict]] = {}
         
     def _initialize_model(self):
         """Initialize the Gemini model with configuration"""
+        if not GOOGLE_AI_AVAILABLE:
+            self.model = None
+            return
+            
         try:
             # Safety settings
             safety_settings = {
@@ -87,7 +111,7 @@ class GeminiService:
     
     def is_available(self) -> bool:
         """Check if Gemini service is available"""
-        return self.model is not None and bool(self.api_key)
+        return GOOGLE_AI_AVAILABLE and self.model is not None and bool(self.api_key)
     
     async def generate_response(
         self, 

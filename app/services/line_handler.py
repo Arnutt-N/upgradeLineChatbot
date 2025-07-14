@@ -2,7 +2,8 @@
 import httpx
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from linebot.v3.messaging import AsyncMessagingApi, TextMessage, ReplyMessageRequest, PushMessageRequest, ShowLoadingAnimationRequest
+from linebot.v3.messaging import AsyncMessagingApi, TextMessage, ReplyMessageRequest, PushMessageRequest
+# ShowLoadingAnimationRequest removed for compatibility
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 
 from app.core.config import settings
@@ -10,14 +11,11 @@ from app.db.crud import get_or_create_user_status, set_live_chat_status, save_ch
 from app.services.ws_manager import manager
 
 async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str):
-    """แสดง loading animation ให้ผู้ใช้เห็น"""
+    """แสดง loading animation ให้ผู้ใช้เห็น - disabled for compatibility"""
     try:
-        loading_request = ShowLoadingAnimationRequest(
-            chat_id=user_id,
-            loading_seconds=3  # แสดง animation 3 วินาที (ลดจาก 5 เป็น 3)
-        )
-        await line_bot_api.show_loading_animation(loading_request)
-        print(f"✅ Loading animation sent to user: {user_id}")
+        # ShowLoadingAnimationRequest not available in current SDK version
+        pass
+        print(f"✅ Loading animation disabled for user: {user_id}")
     except Exception as e:
         print(f"❌ Error showing loading animation: {e}")
         # ไม่ให้ error นี้หยุดการทำงานของระบบ

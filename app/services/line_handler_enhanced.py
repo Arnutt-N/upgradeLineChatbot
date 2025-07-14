@@ -5,7 +5,8 @@ import httpx
 from datetime import datetime
 from typing import Dict, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest, ShowLoadingAnimationRequest
+from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest
+# ShowLoadingAnimationRequest removed for compatibility
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, ImageMessageContent, FileMessageContent, FollowEvent, UnfollowEvent
 
 from app.core.config import settings
@@ -171,10 +172,10 @@ async def send_to_telegram_actual(
 # ========================================
 
 async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str, seconds: int = 3):
-    """แสดง loading animation"""
+    """แสดง loading animation - disabled for compatibility"""
     try:
-        loading_request = ShowLoadingAnimationRequest(chat_id=user_id, loading_seconds=seconds)
-        await line_bot_api.show_loading_animation(loading_request)
+        # ShowLoadingAnimationRequest not available in current SDK version
+        pass
     except Exception as e:
         print(f"Could not show loading animation: {e}")
 
@@ -395,9 +396,8 @@ async def handle_image_message_enhanced(event: MessageEvent, db: AsyncSession, l
     
     # Show loading animation
     try:
-        await line_bot_api.show_loading_animation(
-            ShowLoadingAnimationRequest(chat_id=user_id)
-        )
+        # Loading animation disabled for compatibility
+        pass
     except Exception:
         pass  # Loading animation might not be available in all plans
     
@@ -477,9 +477,8 @@ async def handle_file_message_enhanced(event: MessageEvent, db: AsyncSession, li
     
     # Show loading animation
     try:
-        await line_bot_api.show_loading_animation(
-            ShowLoadingAnimationRequest(chat_id=user_id)
-        )
+        # Loading animation disabled for compatibility
+        pass
     except Exception:
         pass
     

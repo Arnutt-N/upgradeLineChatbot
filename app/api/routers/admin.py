@@ -5,7 +5,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from linebot.v3.messaging import (
     AsyncApiClient, AsyncMessagingApi, Configuration, 
-    TextMessage, PushMessageRequest, ShowLoadingAnimationRequest
+    TextMessage, PushMessageRequest
+    # ShowLoadingAnimationRequest removed for compatibility  
 )
 
 from app.core.config import settings
@@ -66,10 +67,10 @@ async def admin_reply(payload: ReplyPayload, db: AsyncSession = Depends(get_db))
     try:
         line_bot_api = get_line_bot_api()
         
-        # 1. แสดง loading animation (ถ้าต้องการ)
+        # 1. แสดง loading animation (disabled for compatibility)
         try:
-            loading_request = ShowLoadingAnimationRequest(chat_id=payload.user_id, loading_seconds=3)
-            await line_bot_api.show_loading_animation(loading_request)
+            # ShowLoadingAnimationRequest not available in current SDK version
+            pass
         except Exception as e:
             print(f"Error showing loading animation: {e}")
         

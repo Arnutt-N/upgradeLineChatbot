@@ -25,7 +25,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from linebot.v3.messaging import (
     AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, StickerMessage,
-    ReplyMessageRequest, PushMessageRequest, ShowLoadingAnimationRequest
+    ReplyMessageRequest, PushMessageRequest
+    # ShowLoadingAnimationRequest removed for compatibility
 )
 from linebot.v3.webhooks import (
     MessageEvent, TextMessageContent, ImageMessageContent, VideoMessageContent,
@@ -731,11 +732,10 @@ class MessageHandler:
     # Helper methods
     
     async def _show_loading_animation(self, line_bot_api: AsyncMessagingApi, user_id: str, seconds: int = 3):
-        """Show loading animation"""
+        """Show loading animation - disabled for compatibility"""
         try:
-            await line_bot_api.show_loading_animation(
-                ShowLoadingAnimationRequest(chat_id=user_id, loading_seconds=seconds)
-            )
+            # ShowLoadingAnimationRequest not available in current SDK version
+            pass
         except Exception:
             pass  # Loading animation might not be available
     

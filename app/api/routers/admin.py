@@ -4,12 +4,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
-import pytz
 from linebot.v3.messaging import (
     AsyncApiClient, AsyncMessagingApi, Configuration, 
     TextMessage, PushMessageRequest
     # ShowLoadingAnimationRequest removed for compatibility  
 )
+
+from app.utils.timezone import convert_to_thai_time, get_thai_time
 
 from app.core.config import settings
 from app.db.database import get_db
@@ -192,18 +193,9 @@ async def get_user_messages(user_id: str, db: AsyncSession = Depends(get_db)):
         messages = await get_all_chat_history_by_user(db, user_id)
         messages_list = []
         
-        # Thai timezone
-        thai_tz = pytz.timezone('Asia/Bangkok')
-        
         for msg in messages:
-            # Convert timestamp to Thai timezone
-            if msg.timestamp.tzinfo is None:
-                # If naive datetime, assume it's UTC
-                utc_time = pytz.utc.localize(msg.timestamp)
-            else:
-                utc_time = msg.timestamp.astimezone(pytz.utc)
-            
-            thai_time = utc_time.astimezone(thai_tz)
+            # Convert timestamp to Thai timezone using utility
+            thai_time = convert_to_thai_time(msg.timestamp)
             
             messages_list.append({
                 "id": msg.id,
@@ -237,8 +229,7 @@ async def get_system_status(db: AsyncSession = Depends(get_db)):
         telegram_configured = bool(settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID)
         
         # Thai timezone for system status
-        thai_tz = pytz.timezone('Asia/Bangkok')
-        thai_time = datetime.now(thai_tz)
+        thai_time = get_thai_time()
         
         return {
             "status": "ok",

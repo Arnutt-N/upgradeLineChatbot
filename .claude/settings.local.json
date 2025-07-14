@@ -5,7 +5,9 @@
       "Bash(env/Scripts/python.exe -m pip install:*)",
       "Bash(python:*)",
       "Bash(curl:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

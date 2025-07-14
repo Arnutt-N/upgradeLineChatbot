@@ -228,7 +228,8 @@ async def get_system_status(db: AsyncSession = Depends(get_db)):
         db_available = True
         db_error = None
         try:
-            result = await db.execute("SELECT 1")
+            from sqlalchemy import text
+            result = await db.execute(text("SELECT 1"))
             await result.fetchone()
         except Exception as e:
             db_available = False

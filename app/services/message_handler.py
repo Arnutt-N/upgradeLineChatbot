@@ -171,6 +171,21 @@ class MessageHandler:
             )
             await save_chat_message(db, user_id, 'user', message_text)
             
+            # Broadcast to admin panel via WebSocket
+            from app.services.ws_manager import manager
+            from app.utils.timezone import get_thai_time
+            
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": message_text,
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat()
+            })
+            
             # Show loading animation
             await self._show_loading_animation(line_bot_api, user_id)
             
@@ -208,6 +223,14 @@ class MessageHandler:
                     )
                     await save_chat_message(db, user_id, 'ai_bot', ai_response)
                     
+                    # Broadcast AI response to admin panel
+                    await manager.broadcast({
+                        "type": "bot_auto_reply", 
+                        "userId": user_id, 
+                        "message": ai_response, 
+                        "sessionId": session_id
+                    })
+                    
                 except Exception as e:
                     # Fallback response
                     fallback_response = "ขออภัย เกิดข้อผิดพลาดในระบบ AI กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่"
@@ -221,7 +244,7 @@ class MessageHandler:
                     )
             else:
                 # AI unavailable fallback
-                fallback_response = "สวัสดีครับ/ค่ะ ขอบคุณที่ติดต่อเรามา หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่'"
+                fallback_response = "สวัสดีค่ะ! ดีใจที่ได้คุยกับคุณนะคะ 😊 หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่' ได้เลยค่ะ"
                 await line_bot_api.reply_message(
                     ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=fallback_response)])
                 )
@@ -732,12 +755,20 @@ class MessageHandler:
     # Helper methods
     
     async def _show_loading_animation(self, line_bot_api: AsyncMessagingApi, user_id: str, seconds: int = 3):
-        """Show loading animation - disabled for compatibility"""
+        """Show loading animation พร้อมการกำหนดเวลา"""
         try:
-            # ShowLoadingAnimationRequest not available in current SDK version
-            pass
-        except Exception:
-            pass  # Loading animation might not be available
+            from linebot.v3.messaging import ShowLoadingAnimationRequest
+            
+            # Maximum allowed loading time is 60 seconds
+            loading_seconds = min(seconds, 60)
+            
+            loading_request = ShowLoadingAnimationRequest(
+                chat_id=user_id,
+                loading_seconds=loading_seconds
+            )
+            await line_bot_api.show_loading_animation(loading_request)
+        except Exception as e:
+            print(f"Could not show loading animation: {e}")
     
     async def _get_blob_api(self) -> AsyncMessagingApiBlob:
         """Get blob API client for downloading content"""

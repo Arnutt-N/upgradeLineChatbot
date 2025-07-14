@@ -95,7 +95,7 @@ class MessageHandler:
                 subcategory="message_received",
                 message=f"Processing {message_type} message from {profile_data['display_name']}",
                 user_id=user_id,
-                metadata={"message_type": message_type, "profile": profile_data}
+                details={"message_type": message_type, "profile": profile_data}
             )
             
             # Route to appropriate handler

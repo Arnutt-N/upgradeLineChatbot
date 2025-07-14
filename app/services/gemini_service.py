@@ -333,7 +333,7 @@ class GeminiService:
                 category="gemini",
                 subcategory="ai_response",
                 message=f"Gemini response for user {user_id}: {ai_result.get('success', False)}",
-                metadata={
+                details={
                     "user_message_length": len(user_message),
                     "ai_response_length": len(ai_result.get("response", "")),
                     "model": ai_result.get("model"),

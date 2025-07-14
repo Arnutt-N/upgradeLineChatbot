@@ -489,7 +489,7 @@ async def test_gemini_connection(db: AsyncSession = Depends(get_db)):
             category="gemini",
             subcategory="connection_test",
             message=f"Gemini connection test result: {result.get('success', False)}",
-            metadata={
+            details={
                 "test_message": test_message,
                 "response_success": result.get("success"),
                 "model": result.get("model"),
@@ -562,7 +562,7 @@ async def chat_with_gemini(
             category="gemini",
             subcategory="api_chat",
             message=f"Direct API chat for user {user_id}",
-            metadata={
+            details={
                 "message_length": len(message),
                 "response_success": result.get("success"),
                 "usage": result.get("usage")

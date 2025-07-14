@@ -27,9 +27,13 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
 async def on_startup():
-    print("Application startup: Creating database and tables...")
-    await create_db_and_tables()
-    print("Database and tables created successfully.")
+    print("Application startup: Initializing database...")
+    try:
+        await create_db_and_tables()
+        print("Database and tables created successfully.")
+    except Exception as e:
+        print(f"Warning: Database initialization failed: {e}")
+        print("Application will start anyway, database will be created on first request.")
 
 @app.on_event("shutdown")
 async def on_shutdown():

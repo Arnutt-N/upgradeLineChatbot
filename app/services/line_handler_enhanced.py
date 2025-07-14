@@ -5,8 +5,7 @@ import httpx
 from datetime import datetime
 from typing import Dict, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest
-# ShowLoadingAnimationRequest removed for compatibility
+from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest, ShowLoadingAnimationRequest
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, ImageMessageContent, FileMessageContent, FollowEvent, UnfollowEvent
 
 from app.core.config import settings
@@ -173,10 +172,16 @@ async def send_to_telegram_actual(
 # ========================================
 
 async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str, seconds: int = 3):
-    """แสดง loading animation - disabled for compatibility"""
+    """แสดง loading animation พร้อมการกำหนดเวลา"""
     try:
-        # ShowLoadingAnimationRequest not available in current SDK version
-        pass
+        # Maximum allowed loading time is 60 seconds
+        loading_seconds = min(seconds, 60)
+        
+        loading_request = ShowLoadingAnimationRequest(
+            chat_id=user_id,
+            loading_seconds=loading_seconds
+        )
+        await line_bot_api.show_loading_animation(loading_request)
     except Exception as e:
         print(f"Could not show loading animation: {e}")
 
@@ -329,7 +334,7 @@ async def handle_bot_mode_message(
     if any(keyword in message_text.lower() for keyword in live_chat_keywords):
         await show_loading_animation(line_bot_api, user_id)
         await set_live_chat_status(db, user_id, True, profile_data['display_name'], profile_data['picture_url'])
-        response_text = "รับทราบค่ะ กำลังโอนสายไปยังเจ้าหน้าที่ รอสักครู่นะคะ..."
+        response_text = "รับทราบค่ะ! กำลังโอนสายไปยังเจ้าหน้าที่ให้นะคะ รอแป๊บนึงเดี๋ยวจะมีเจ้าหน้าที่มาคุยกับคุณค่ะ 💕"
         
         await save_chat_to_history(
             db=db, user_id=user_id, message_type='bot', message_content=response_text,
@@ -405,7 +410,7 @@ async def handle_bot_mode_message(
                 extra_data = {"standard_reply": True, "ai_fallback": True, "exception": str(e)}
         else:
             # Standard response when AI is not available
-            response_text = "สวัสดีค่ะ! ขอบคุณที่ติดต่อเรามา หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่' ค่ะ"
+            response_text = "สวัสดีค่ะ! ดีใจที่ได้พบกับคุณนะคะ 😊 หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่' ได้เลยค่ะ"
             message_type = 'bot'
             extra_data = {"standard_reply": True, "ai_unavailable": True}
         
@@ -443,7 +448,7 @@ async def handle_follow_event(event: FollowEvent, db: AsyncSession, line_bot_api
     )
     await get_or_create_user_status(db, user_id, profile_data['display_name'], profile_data['picture_url'])
     
-    welcome_message = f"สวัสดีค่ะ {profile_data['display_name']}! ยินดีต้อนรับสู่ระบบของเรา 🎉"
+    welcome_message = f"สวัสดีค่ะ คุณ{profile_data['display_name']}! ยินดีต้อนรับสู่ระบบของเราค่ะ 🎉✨ ดีใจที่ได้รู้จักนะคะ มีอะไรให้ช่วยเหลือไหมคะ?"
     try:
         reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=welcome_message)])
         await line_bot_api.reply_message(reply_request)
@@ -454,10 +459,17 @@ async def handle_follow_event(event: FollowEvent, db: AsyncSession, line_bot_api
         )
     
     await send_telegram_notification_enhanced(
-        db=db, notification_type="new_friend", title="👋 เพื่อนใหม่",
-        message=f"ชื่อ: {profile_data['display_name']}\nUser ID: {user_id}",
+        db=db, notification_type="new_friend", title="🎉 เพื่อนใหม่เข้าร่วม",
+        message=f"""👤 ชื่อ: {profile_data['display_name']}
+🆔 User ID: {user_id}
+🕐 เวลา: {thai_time.strftime('%Y-%m-%d %H:%M:%S')}
+📱 ภาษา: {profile_data.get('language', 'ไม่ทราบ')}
+💬 สถานะ: {profile_data.get('status_message', 'ไม่มีสถานะ')}
+📸 รูปโปรไฟล์: {'✅ มี' if profile_data.get('picture_url') else '❌ ไม่มี'}
+
+🎊 ยินดีต้อนรับสู่ระบบ!""",
         user_id=user_id, priority=1,
-        data={"user_profile": profile_data, "timestamp": thai_time.isoformat()}
+        data={"user_profile": profile_data, "timestamp": thai_time.isoformat(), "event_type": "new_friend"}
     )
 
 async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
@@ -474,11 +486,30 @@ async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession, line_bot
     )
     await set_live_chat_status(db, user_id, False)
     
+    # Try to get the last known profile data
+    try:
+        from sqlalchemy import select, desc
+        result = await db.execute(
+            select(UserStatus.display_name, UserStatus.picture_url)
+            .where(UserStatus.user_id == user_id)
+        )
+        user_status = result.first()
+        if user_status:
+            profile_data["display_name"] = user_status.display_name or f"User {user_id[-6:]}"
+            profile_data["had_picture"] = "✅ มี" if user_status.picture_url else "❌ ไม่มี"
+    except:
+        pass
+    
     await send_telegram_notification_enhanced(
-        db=db, notification_type="friend_left", title="👋 เพื่อนออกจากระบบ", 
-        message=f"ชื่อ: {profile_data['display_name']}\nUser ID: {user_id}",
+        db=db, notification_type="friend_left", title="😔 เพื่อนออกจากระบบ", 
+        message=f"""👤 ชื่อ: {profile_data['display_name']}
+🆔 User ID: {user_id}
+🕐 เวลา: {thai_time.strftime('%Y-%m-%d %H:%M:%S')}
+📸 รูปโปรไฟล์: {profile_data.get('had_picture', 'ไม่ทราบ')}
+
+💔 ขอบคุณที่เคยใช้บริการของเรา""",
         user_id=user_id, priority=1,
-        data={"user_profile": profile_data, "timestamp": thai_time.isoformat()}
+        data={"user_profile": profile_data, "timestamp": thai_time.isoformat(), "event_type": "friend_left"}
     )
 
 # ========================================

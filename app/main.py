@@ -3,6 +3,7 @@ import uvicorn
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.database import create_db_and_tables
 from app.api.routers import webhook, admin, form_admin
@@ -10,6 +11,15 @@ from app.api.routers import webhook, admin, form_admin
 app = FastAPI(
     title=settings.APP_TITLE,
     version=settings.APP_VERSION
+)
+
+# Configure CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Mount static files

@@ -1940,9 +1940,20 @@
                     }
                 } catch (error) {
                     console.error('Error checking system status:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        type: error.constructor.name,
+                        stack: error.stack
+                    });
+                    
                     const statusIndicator = document.querySelector('.status-indicator');
-                    statusIndicator.style.background = 'var(--error)';
-                    statusIndicator.querySelector('span').textContent = 'ออฟไลน์';
+                    if (statusIndicator) {
+                        statusIndicator.style.background = 'var(--error)';
+                        const statusSpan = statusIndicator.querySelector('span');
+                        if (statusSpan) {
+                            statusSpan.textContent = 'เชื่อมต่อไม่ได้';
+                        }
+                    }
                 }
             }, 30000);
         });
@@ -2464,6 +2475,21 @@
                 
             } catch (error) {
                 console.error('Error refreshing data:', error);
+                console.error('Refresh error details:', {
+                    message: error.message,
+                    type: error.constructor.name,
+                    stack: error.stack
+                });
+                
+                // Update status indicator to show error
+                const statusIndicator = document.querySelector('.status-indicator');
+                if (statusIndicator) {
+                    statusIndicator.style.background = 'var(--error)';
+                    const statusSpan = statusIndicator.querySelector('span');
+                    if (statusSpan) {
+                        statusSpan.textContent = 'เชื่อมต่อไม่ได้';
+                    }
+                }
             }
         }
 

@@ -6,8 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from linebot.v3.messaging import (
     AsyncApiClient, AsyncMessagingApi, Configuration, 
-    TextMessage, PushMessageRequest
-    # ShowLoadingAnimationRequest removed for compatibility  
+    TextMessage, PushMessageRequest, ShowLoadingAnimationRequest
 )
 
 from app.utils.timezone import convert_to_thai_time, get_thai_time
@@ -70,10 +69,13 @@ async def admin_reply(payload: ReplyPayload, db: AsyncSession = Depends(get_db))
     try:
         line_bot_api = get_line_bot_api()
         
-        # 1. แสดง loading animation (disabled for compatibility)
+        # 1. แสดง loading animation
         try:
-            # ShowLoadingAnimationRequest not available in current SDK version
-            pass
+            loading_request = ShowLoadingAnimationRequest(
+                chat_id=payload.user_id,
+                loading_seconds=2
+            )
+            await line_bot_api.show_loading_animation(loading_request)
         except Exception as e:
             print(f"Error showing loading animation: {e}")
         
@@ -213,34 +215,60 @@ async def get_user_messages(user_id: str, db: AsyncSession = Depends(get_db)):
 async def get_system_status(db: AsyncSession = Depends(get_db)):
     """ตรวจสอบสถานะระบบและการเชื่อมต่อ"""
     try:
-        from app.services.gemini_service import check_gemini_availability
-        
         # Check Gemini AI availability
-        ai_available = await check_gemini_availability()
+        ai_available = False
+        ai_error = None
+        try:
+            from app.services.gemini_service import check_gemini_availability
+            ai_available = await check_gemini_availability()
+        except Exception as e:
+            ai_error = str(e)
         
         # Check database connection
         db_available = True
+        db_error = None
         try:
-            await db.execute("SELECT 1")
-        except Exception:
+            result = await db.execute("SELECT 1")
+            await result.fetchone()
+        except Exception as e:
             db_available = False
+            db_error = str(e)
         
         # Check Telegram configuration
         telegram_configured = bool(settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID)
         
         # Thai timezone for system status
-        thai_time = get_thai_time()
+        thai_time = None
+        time_error = None
+        try:
+            thai_time = get_thai_time()
+        except Exception as e:
+            time_error = str(e)
+            # Fallback to UTC
+            from datetime import datetime
+            thai_time = datetime.now()
         
-        return {
+        response_data = {
             "status": "ok",
             "ai_available": ai_available,
             "database_available": db_available,
             "telegram_configured": telegram_configured,
             "line_configured": bool(settings.LINE_CHANNEL_ACCESS_TOKEN),
-            "timestamp": thai_time.isoformat()
+            "timestamp": thai_time.isoformat() if thai_time else None
         }
+        
+        # Add error details for debugging
+        if ai_error or db_error or time_error:
+            response_data["debug_info"] = {
+                "ai_error": ai_error,
+                "db_error": db_error,
+                "time_error": time_error
+            }
+        
+        return response_data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"System status check failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"System status check failed: {str(e)}")
 
 @router.post("/admin/force_bot_mode", summary="API สำหรับบังคับโหมดบอทสำหรับผู้ใช้")
 async def force_bot_mode(payload: EndChatPayload, db: AsyncSession = Depends(get_db)):

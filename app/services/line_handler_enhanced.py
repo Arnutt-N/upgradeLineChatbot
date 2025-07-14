@@ -3,7 +3,6 @@ import json
 import uuid
 import httpx
 from datetime import datetime
-import pytz
 from typing import Dict, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest
@@ -23,6 +22,7 @@ from app.db.crud_enhanced import (
     update_notification_status # <-- เพิ่ม import นี้เข้ามา
 )
 from app.services.ws_manager import manager
+from app.utils.timezone import get_thai_time
 
 # --- Gemini AI Integration ---
 from app.services.gemini_service import get_ai_response, check_gemini_availability, image_understanding, document_understanding
@@ -187,8 +187,7 @@ async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bo
     message_text = event.message.text
     message_id = getattr(event.message, 'id', None)
     # Use Thai timezone for session ID
-    thai_tz = pytz.timezone('Asia/Bangkok')
-    thai_time = datetime.now(thai_tz)
+    thai_time = get_thai_time()
     session_id = f"session_{user_id}_{thai_time.strftime('%Y%m%d')}"
     
     profile_data = await get_user_profile_enhanced(line_bot_api, user_id)
@@ -225,8 +224,7 @@ async def handle_live_chat_message(
 ):
     """จัดการข้อความในโหมด Live Chat"""
     # Use Thai timezone
-    thai_tz = pytz.timezone('Asia/Bangkok')
-    thai_time = datetime.now(thai_tz)
+    thai_time = get_thai_time()
     
     await manager.broadcast({
         "type": "new_message", "userId": user_id, "message": message_text,
@@ -323,8 +321,7 @@ async def handle_bot_mode_message(
 ):
     """จัดการข้อความในโหมดบอทด้วย Gemini AI"""
     # Use Thai timezone
-    thai_tz = pytz.timezone('Asia/Bangkok')
-    thai_time = datetime.now(thai_tz)
+    thai_time = get_thai_time()
     
     # Check for live chat request keywords
     live_chat_keywords = ["คุยกับแอดมิน", "ติดต่อเจ้าหน้าที่", "admin", "help", "คุยกับคน"]
@@ -438,8 +435,7 @@ async def handle_follow_event(event: FollowEvent, db: AsyncSession, line_bot_api
     profile_data = await get_user_profile_enhanced(line_bot_api, user_id)
     
     # Use Thai timezone
-    thai_tz = pytz.timezone('Asia/Bangkok')
-    thai_time = datetime.now(thai_tz)
+    thai_time = get_thai_time()
     
     await save_friend_activity(
         db=db, user_id=user_id, activity_type='follow', user_profile=profile_data,
@@ -470,8 +466,7 @@ async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession, line_bot
     profile_data = {"user_id": user_id, "display_name": f"User {user_id[-6:]}", "source": "fallback"}
     
     # Use Thai timezone
-    thai_tz = pytz.timezone('Asia/Bangkok')
-    thai_time = datetime.now(thai_tz)
+    thai_time = get_thai_time()
     
     await save_friend_activity(
         db=db, user_id=user_id, activity_type='unfollow', user_profile=profile_data,

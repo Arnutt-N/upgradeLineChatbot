@@ -200,3 +200,11 @@ pids
 
 manus/
 >>>>>>> feature/forms-admin-separation
+
+ai-agent-jetpack/"NUL" 
+"__pycache__/" 
+"*.pyc" 
+"*.log" 
+".env.backup" 
+
+.claude/

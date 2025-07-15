@@ -5,7 +5,7 @@ import httpx
 from datetime import datetime
 from typing import Dict, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest, ShowLoadingAnimationRequest
+from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, ImageMessageContent, FileMessageContent, FollowEvent, UnfollowEvent
 
 from app.core.config import settings

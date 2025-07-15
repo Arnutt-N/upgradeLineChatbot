@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from linebot.v3.messaging import (
     AsyncApiClient, AsyncMessagingApi, Configuration, 
-    TextMessage, PushMessageRequest, ShowLoadingAnimationRequest
+    TextMessage, PushMessageRequest
 )
 
 from app.utils.timezone import convert_to_thai_time, get_thai_time

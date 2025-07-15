@@ -110,8 +110,7 @@ class GeminiService:
             self.model = genai.GenerativeModel(
                 model_name=self.model_name,
                 generation_config=generation_config,
-                safety_settings=safety_settings if self.enable_safety else None,
-                system_instruction=system_instruction
+                safety_settings=safety_settings if self.enable_safety else None
             )
             
         except Exception as e:

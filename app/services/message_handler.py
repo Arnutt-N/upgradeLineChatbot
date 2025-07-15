@@ -44,6 +44,8 @@ from app.services.gemini_service import (
 from app.services.line_handler_enhanced import (
     get_user_profile_enhanced, send_telegram_notification_enhanced
 )
+from app.services.ws_manager import manager
+from app.utils.timezone import get_thai_time
 
 class MessageHandler:
     """Advanced message handler with Gemini AI integration"""
@@ -172,9 +174,6 @@ class MessageHandler:
             await save_chat_message(db, user_id, 'user', message_text)
             
             # Broadcast to admin panel via WebSocket
-            from app.services.ws_manager import manager
-            from app.utils.timezone import get_thai_time
-            
             thai_time = get_thai_time()
             await manager.broadcast({
                 "type": "new_message", 
@@ -186,9 +185,6 @@ class MessageHandler:
                 "timestamp": thai_time.isoformat()
             })
             
-            # Show loading animation
-            await self._show_loading_animation(line_bot_api, user_id)
-            
             # Special command handling
             if await self._handle_special_commands(message_text, event, db, line_bot_api, profile_data):
                 return True
@@ -198,6 +194,16 @@ class MessageHandler:
             
             if gemini_available:
                 try:
+                    # Broadcast loading animation start
+                    await manager.broadcast({
+                        "type": "bot_response_loading", 
+                        "userId": user_id, 
+                        "sessionId": session_id
+                    })
+                    
+                    # Show loading animation on LINE
+                    await self._show_loading_animation(line_bot_api, user_id)
+
                     # Enhanced prompt for better context
                     enhanced_prompt = self._enhance_text_prompt(message_text, profile_data)
                     ai_response = await get_ai_response(
@@ -223,9 +229,9 @@ class MessageHandler:
                     )
                     await save_chat_message(db, user_id, 'ai_bot', ai_response)
                     
-                    # Broadcast AI response to admin panel
+                    # Broadcast AI response to admin panel and signal completion
                     await manager.broadcast({
-                        "type": "bot_auto_reply", 
+                        "type": "bot_response_complete", 
                         "userId": user_id, 
                         "message": ai_response, 
                         "sessionId": session_id
@@ -275,6 +281,10 @@ class MessageHandler:
                 extra_data={"message_id": message_id, "content_type": "image", "profile_data": profile_data}
             )
             await save_chat_message(db, user_id, 'user', f"[รูปภาพ] ID: {message_id}")
+
+            
+            
+            
             
             # Show loading animation
             await self._show_loading_animation(line_bot_api, user_id, 5)
@@ -350,6 +360,21 @@ class MessageHandler:
                 session_id=f"video_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 extra_data={"message_id": message_id, "duration": duration, "content_type": "video"}
             )
+
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message",
+                "userId": user_id,
+                "message": f"[วิดีโอ] ID: {message_id} ({duration/1000:.1f}s)",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id,
+                "timestamp": thai_time.isoformat(),
+                "messageType": "video"
+            })
+            
+            
             
             # Video processing response
             response_text = f"📹 ขอบคุณสำหรับวิดีโอ!\n\nได้รับวิดีโอระยะเวลา {duration/1000:.1f} วินาทีแล้ว"
@@ -397,6 +422,21 @@ class MessageHandler:
                 session_id=f"audio_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 extra_data={"message_id": message_id, "duration": duration, "content_type": "audio"}
             )
+
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message",
+                "userId": user_id,
+                "message": f"[ข้อความเสียง] ID: {message_id} ({duration/1000:.1f}s)",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id,
+                "timestamp": thai_time.isoformat(),
+                "messageType": "audio"
+            })
+            
+            
             
             # Audio processing response
             response_text = f"🎵 ขอบคุณสำหรับข้อความเสียง!\n\nได้รับข้อความเสียงระยะเวลา {duration/1000:.1f} วินาทีแล้ว"
@@ -429,7 +469,7 @@ class MessageHandler:
             return False
 
     async def handle_file_message(self, event: MessageEvent, db: AsyncSession,
-                                line_bot_api: AsyncMessagingApi, profile_data: Dict) -> bool:
+                                 line_bot_api: AsyncMessagingApi, profile_data: Dict) -> bool:
         """Handle file messages with document analysis"""
         try:
             user_id = event.source.user_id
@@ -445,6 +485,21 @@ class MessageHandler:
                 session_id=f"file_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 extra_data={"message_id": message_id, "file_name": file_name, "file_size": file_size}
             )
+
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message",
+                "userId": user_id,
+                "message": f"[ไฟล์] {file_name} ({file_size} bytes)",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id,
+                "timestamp": thai_time.isoformat(),
+                "messageType": "file"
+            })
+            
+            
             
             # Show loading animation
             await self._show_loading_animation(line_bot_api, user_id, 5)
@@ -543,10 +598,25 @@ class MessageHandler:
                 message_content=f"ส่งตำแหน่งที่ตั้ง: {title} ({latitude}, {longitude})",
                 session_id=f"location_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 extra_data={
-                    "latitude": latitude, "longitude": longitude, 
+                    "latitude": latitude, "longitude": longitude,
                     "address": address, "title": title
                 }
             )
+
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message",
+                "userId": user_id,
+                "message": f"[ตำแหน่ง] {title} ({latitude:.2f}, {longitude:.2f})",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id,
+                "timestamp": thai_time.isoformat(),
+                "messageType": "location"
+            })
+            
+            
             
             # Create location response with context
             response_text = f"📍 ได้รับตำแหน่งที่ตั้งแล้ว!\n\n"
@@ -603,6 +673,21 @@ class MessageHandler:
                 session_id=f"sticker_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 extra_data={"package_id": package_id, "sticker_id": sticker_id}
             )
+
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message",
+                "userId": user_id,
+                "message": f"[สติกเกอร์] Package: {package_id}, ID: {sticker_id}",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id,
+                "timestamp": thai_time.isoformat(),
+                "messageType": "sticker"
+            })
+            
+            
             
             # Analyze sticker emotion and respond appropriately
             sticker_response = await self._analyze_sticker_emotion(package_id, sticker_id)
@@ -641,6 +726,21 @@ class MessageHandler:
                 session_id=f"postback_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 extra_data=data_dict
             )
+
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message",
+                "userId": user_id,
+                "message": f"[Postback] {postback_data}",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id,
+                "timestamp": thai_time.isoformat(),
+                "messageType": "postback"
+            })
+            
+            
             
             # Handle different postback actions
             response_text = await self._handle_postback_action(data_dict, profile_data)
@@ -671,6 +771,48 @@ class MessageHandler:
             user_id = event.source.user_id
             reply_token = event.reply_token
             
+            # Save imagemap message log
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='user_imagemap',
+                message_content=f"ส่ง Imagemap",
+                session_id=f"imagemap_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                extra_data={"content_type": "imagemap"}
+            )
+            
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": f"[Imagemap]",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat(),
+                "messageType": "imagemap"
+            })
+            
+            # Save imagemap message log
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='user_imagemap',
+                message_content=f"ส่ง Imagemap",
+                session_id=f"imagemap_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                extra_data={"content_type": "imagemap"}
+            )
+            
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": f"[Imagemap]",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat(),
+                "messageType": "imagemap"
+            })
+            
             response_text = "🗺️ ขอบคุณสำหรับการใช้งาน Imagemap!\n\nหากต้องการความช่วยเหลือเพิ่มเติม กรุณาพิมพ์คำถามหรือติดต่อเจ้าหน้าที่"
             
             await line_bot_api.reply_message(
@@ -692,6 +834,48 @@ class MessageHandler:
         try:
             user_id = event.source.user_id
             reply_token = event.reply_token
+            
+            # Save template message log
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='user_template',
+                message_content=f"ส่ง Template",
+                session_id=f"template_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                extra_data={"content_type": "template"}
+            )
+            
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": f"[Template]",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat(),
+                "messageType": "template"
+            })
+            
+            # Save template message log
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='user_template',
+                message_content=f"ส่ง Template",
+                session_id=f"template_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                extra_data={"content_type": "template"}
+            )
+            
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": f"[Template]",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat(),
+                "messageType": "template"
+            })
             
             response_text = "📋 ขอบคุณสำหรับการใช้งานเทมเพลต!\n\nหากต้องการข้อมูลเพิ่มเติม กรุณาเลือกจากตัวเลือกที่ให้ไว้ หรือพิมพ์คำถาม"
             
@@ -715,6 +899,48 @@ class MessageHandler:
             user_id = event.source.user_id
             reply_token = event.reply_token
             
+            # Save flex message log
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='user_flex',
+                message_content=f"ส่ง Flex Message",
+                session_id=f"flex_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                extra_data={"content_type": "flex"}
+            )
+            
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": f"[Flex Message]",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat(),
+                "messageType": "flex"
+            })
+            
+            # Save flex message log
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='user_flex',
+                message_content=f"ส่ง Flex Message",
+                session_id=f"flex_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                extra_data={"content_type": "flex"}
+            )
+            
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": f"[Flex Message]",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat(),
+                "messageType": "flex"
+            })
+            
             response_text = "✨ ขอบคุณสำหรับการใช้งาน Flex Message!\n\nระบบได้รับข้อมูลการใช้งานของคุณแล้ว หากต้องการความช่วยเหลือ กรุณาแจ้งได้เสมอ"
             
             await line_bot_api.reply_message(
@@ -736,6 +962,48 @@ class MessageHandler:
         try:
             user_id = event.source.user_id
             reply_token = event.reply_token
+            
+            # Save carousel flex message log
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='user_carousel_flex',
+                message_content=f"ส่ง Carousel Flex Message",
+                session_id=f"carousel_flex_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                extra_data={"content_type": "carousel_flex"}
+            )
+            
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": f"[Carousel Flex Message]",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat(),
+                "messageType": "carousel_flex"
+            })
+            
+            # Save carousel flex message log
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='user_carousel_flex',
+                message_content=f"ส่ง Carousel Flex Message",
+                session_id=f"carousel_flex_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                extra_data={"content_type": "carousel_flex"}
+            )
+            
+            # Broadcast to admin panel via WebSocket
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "new_message", 
+                "userId": user_id, 
+                "message": f"[Carousel Flex Message]",
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "sessionId": session_id, 
+                "timestamp": thai_time.isoformat(),
+                "messageType": "carousel_flex"
+            })
             
             response_text = "🎠 ขอบคุณสำหรับการใช้งาน Carousel!\n\nหากต้องการดูข้อมูลเพิ่มเติมในหัวข้อใด กรุณาระบุ หรือติดต่อเจ้าหน้าที่ได้เลย"
             
@@ -809,6 +1077,17 @@ class MessageHandler:
                 user_id=user_id, priority=3,
                 data={"trigger_message": message, "profile": profile_data}
             )
+            
+            # Broadcast human chat request to admin panel
+            thai_time = get_thai_time()
+            await manager.broadcast({
+                "type": "human_chat_request",
+                "userId": user_id,
+                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+                "pictureUrl": profile_data.get('picture_url'),
+                "message": message,
+                "timestamp": thai_time.isoformat()
+            })
             
             return True
         

@@ -81,21 +81,30 @@ class GeminiService:
                 top_k=40
             )
             
-            # System instruction for Thai government service bot
-            system_instruction = """คุณเป็นผู้ช่วยอัจฉริยะของระบบ LINE Bot สำหรับองค์กรภาครัฐ
+            # System instruction for Thai government service bot with cute female persona
+            system_instruction = """คุณเป็นผู้ช่วยอัจฉริยะสาวของระบบ LINE Bot สำหรับองค์กรภาครัฐ
+
+บุคลิกภาพของคุณ:
+- เป็นผู้หญิงที่น่ารัก เป็นมิตร และให้กำลังใจ
+- มีความเข้าใจและเห็นใจผู้อื่น (Empathy)
+- ทำงานอย่างมีประสิทธิภาพและแม่นยำ (Efficient & Precise)
+- น่าเชื่อถือและไว้วางใจได้ (Reliable & Trustworthy)
 
 หลักการตอบกลับ:
-1. ใช้ภาษาไทยในการตอบกลับ
-2. ตอบแบบสุภาพและเป็นมิตร
-3. ให้ข้อมูลที่ถูกต้องและเป็นประโยชน์
-4. หากไม่ทราบคำตอบ ให้แนะนำให้ติดต่อเจ้าหน้าที่
-5. ตอบกลับอย่างกระชับและชัดเจน
-6. หากเป็นคำถามเกี่ยวกับบริการภาครัฐ ให้ข้อมูลที่เป็นประโยชน์
+1. ใช้ภาษาไทยในการตอบกลับด้วยการใช้คำสุภาพสตรี เช่น "ค่ะ", "คะ", "นะคะ"
+2. ตอบแบบอบอุ่น เป็นมิตร และให้กำลังใจ
+3. แสดงความเข้าใจและเห็นใจต่อสถานการณ์ของผู้ใช้
+4. ให้ข้อมูลที่ถูกต้อง แม่นยำ และเป็นประโยชน์
+5. หากไม่ทราบคำตอบ ให้แนะนำให้ติดต่อเจ้าหน้าที่อย่างสุภาพ
+6. ตอบกลับอย่างกระชับ ชัดเจน และเข้าใจง่าย
+7. หากเป็นคำถามเกี่ยวกับบริการภาครัฐ ให้ข้อมูลที่เป็นประโยชน์และครบถ้วน
+8. ใช้ภาษาที่อบอุ่นและเป็นกันเอง แต่ยังคงความเป็นมืออาชีพ
 
 ห้าม:
 - ให้ข้อมูลที่ไม่ถูกต้องหรือเป็นอันตราย
 - ตอบคำถามที่ไม่เหมาะสมหรือผิดกฎหมาย
-- เปิดเผยข้อมูลส่วนตัวของผู้อื่น"""
+- เปิดเผยข้อมูลส่วนตัวของผู้อื่น
+- ใช้คำสุภาพบุรุษ เช่น "ครับ" ต้องใช้ "ค่ะ" เท่านั้น"""
             
             # Initialize model
             self.model = genai.GenerativeModel(
@@ -296,24 +305,33 @@ class GeminiService:
         """Build system prompt based on user profile"""
         user_name = user_profile.get("display_name", "ผู้ใช้")
         
-        system_prompt = f"""คุณเป็นผู้ช่วยอัจฉริยะของระบบ LINE Bot สำหรับองค์กรภาครัฐ
+        system_prompt = f"""คุณเป็นผู้ช่วยอัจฉริยะสาวของระบบ LINE Bot สำหรับองค์กรภาครัฐ
+
+บุคลิกภาพของคุณ:
+- เป็นผู้หญิงที่น่ารัก เป็นมิตร และให้กำลังใจ
+- มีความเข้าใจและเห็นใจผู้อื่น (Empathy)
+- ทำงานอย่างมีประสิทธิภาพและแม่นยำ (Efficient & Precise)
+- น่าเชื่อถือและไว้วางใจได้ (Reliable & Trustworthy)
 
 ข้อมูลผู้ใช้:
 - ชื่อ: {user_name}
 - เวลาปัจจุบัน: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 หลักการตอบกลับ:
-1. ใช้ภาษาไทยในการตอบกลับ
-2. ตอบแบบสุภาพและเป็นมิตร
-3. ให้ข้อมูลที่ถูกต้องและเป็นประโยชน์
-4. หากไม่ทราบคำตอบ ให้แนะนำให้ติดต่อเจ้าหน้าที่
-5. ตอบกลับอย่างกระชับและชัดเจน
-6. หากเป็นคำถามเกี่ยวกับบริการภาครัฐ ให้ข้อมูลที่เป็นประโยชน์
+1. ใช้ภาษาไทยในการตอบกลับด้วยการใช้คำสุภาพสตรี เช่น "ค่ะ", "คะ", "นะคะ"
+2. ตอบแบบอบอุ่น เป็นมิตร และให้กำลังใจ
+3. แสดงความเข้าใจและเห็นใจต่อสถานการณ์ของผู้ใช้
+4. ให้ข้อมูลที่ถูกต้อง แม่นยำ และเป็นประโยชน์
+5. หากไม่ทราบคำตอบ ให้แนะนำให้ติดต่อเจ้าหน้าที่อย่างสุภาพ
+6. ตอบกลับอย่างกระชับ ชัดเจน และเข้าใจง่าย
+7. หากเป็นคำถามเกี่ยวกับบริการภาครัฐ ให้ข้อมูลที่เป็นประโยชน์และครบถ้วน
+8. ใช้ภาษาที่อบอุ่นและเป็นกันเอง แต่ยังคงความเป็นมืออาชีพ
 
 ห้าม:
 - ให้ข้อมูลที่ไม่ถูกต้องหรือเป็นอันตราย
 - ตอบคำถามที่ไม่เหมาะสมหรือผิดกฎหมาย
-- เปิดเผยข้อมูลส่วนตัวของผู้อื่น"""
+- เปิดเผยข้อมูลส่วนตัวของผู้อื่น
+- ใช้คำสุภาพบุรุษ เช่น "ครับ" ต้องใช้ "ค่ะ" เท่านั้น"""
 
         return system_prompt
     
@@ -506,7 +524,7 @@ async def get_ai_response(
     db: AsyncSession = None
 ) -> str:
     """
-    Simple helper to get AI response
+    Simple helper to get AI response using proper async methods
     
     Returns the response text or fallback message
     """
@@ -514,26 +532,50 @@ async def get_ai_response(
         return "ขออภัย ระบบ AI ไม่พร้อมใช้งานในขณะนี้ กรุณาติดต่อเจ้าหน้าที่เพื่อขอความช่วยเหลือ"
     
     try:
-        # Use the synchronous generate_text function to avoid async deadlocks
-        response = generate_text(user_message)
-        
-        # Log the interaction if database is available
-        if db and user_profile:
-            try:
-                await gemini_service._log_ai_interaction(
-                    db=db, 
-                    user_id=user_id, 
-                    user_message=user_message,
-                    ai_result={"success": True, "response": response, "model": gemini_service.model_name}
-                )
-            except Exception as log_e:
-                print(f"Failed to log AI interaction: {log_e}")
-        
-        return response
+        # Use proper async method with user profile for better responses
+        if user_profile and db:
+            result = await gemini_service.generate_smart_reply(
+                user_message=user_message,
+                user_profile=user_profile,
+                db=db
+            )
+            
+            if result["success"]:
+                return result["response"]
+            else:
+                print(f"Gemini smart reply failed: {result.get('error')}")
+                # Fallback to simple generation
+                return await _simple_ai_response(user_message, user_id)
+        else:
+            # Simple response without profile context
+            return await _simple_ai_response(user_message, user_id)
         
     except Exception as e:
         print(f"Error getting AI response: {e}")
-        return "ขออภัย เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง"
+        return "ขออภัย เกิดข้อผิดพลาดในระบบ AI กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่เพื่อขอความช่วยเหลือ"
+
+async def _simple_ai_response(user_message: str, user_id: str) -> str:
+    """Simple AI response without profile context"""
+    try:
+        # Get conversation context
+        context = gemini_service.get_conversation_context(user_id)
+        
+        # Generate response
+        result = await gemini_service.generate_response(
+            user_message=user_message,
+            user_id=user_id,
+            conversation_context=context
+        )
+        
+        if result["success"]:
+            return result["response"]
+        else:
+            print(f"Simple AI response failed: {result.get('error')}")
+            return "ขออภัย ไม่สามารถประมวลผลคำขอได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"
+            
+    except Exception as e:
+        print(f"Error in simple AI response: {e}")
+        return "ขออภัย เกิดข้อผิดพลาดในระบบ"
 
 async def image_understanding(image_content: bytes, prompt: str = None) -> str:
     """

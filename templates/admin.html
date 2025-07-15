@@ -941,6 +941,74 @@
             text-align: right;
         }
 
+        /* Loading Animation for Bot Responses */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            max-width: 85%;
+            margin-bottom: var(--space-2);
+        }
+
+        .typing-indicator .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: var(--bot-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-sm);
+            color: var(--text-primary);
+            flex-shrink: 0;
+        }
+
+        .typing-indicator .typing-bubble {
+            background: var(--bot-bg);
+            border-radius: var(--radius-md);
+            border-bottom-left-radius: var(--radius-sm);
+            padding: var(--space-3) var(--space-4);
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: var(--space-1);
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            animation: typingDots 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingDots {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-8px);
+                opacity: 1;
+            }
+        }
+
+        .typing-text {
+            margin-left: var(--space-2);
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
         /* Input Area */
         .input-area {
             padding: var(--space-4);
@@ -1662,7 +1730,10 @@
     </div>
 
     <input type="file" id="fileInput" style="display: none;" multiple accept="image/*,application/pdf,.doc,.docx,.txt">
-    <audio id="notificationSound" src="https://cdn.freesound.org/previews/242/242857_4284969-lq.mp3" preload="auto"></audio>
+    <audio id="notificationSound" preload="auto">
+        <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" type="audio/wav">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjqN1PfIeSEFJITT4sZ9KwYfetH+4mYnBSyPzf3FeSBNjdLtyms=" type="audio/wav">
+    </audio>
 
     <script>
         let ws = null;
@@ -1707,28 +1778,114 @@
             }]
         ]);
 
-        // WebSocket Connection
+        // WebSocket Connection with Enhanced Debugging
+        let wsConnected = false;
+        let wsReconnectAttempts = 0;
+        let wsUrl = null;
+        
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+            wsUrl = `${protocol}//${window.location.host}/ws`;
+            console.log('🔌 Attempting WebSocket connection to:', wsUrl);
+            
+            // Close existing connection if any
+            if (ws && ws.readyState !== WebSocket.CLOSED) {
+                console.log('🔌 Closing existing WebSocket connection (state:', ws.readyState, ')');
+                ws.close();
+            }
+            
+            ws = new WebSocket(wsUrl);
             
             ws.onopen = () => {
-                console.log('✅ WebSocket Connected');
+                console.log('✅ WebSocket Connected Successfully');
+                console.log('📊 WebSocket readyState:', ws.readyState);
+                console.log('🌐 Connected to:', wsUrl);
+                wsConnected = true;
+                wsReconnectAttempts = 0;
+                updateConnectionStatus(true);
+                
+                // Send a test ping message
+                if (ws.readyState === WebSocket.OPEN) {
+                    console.log('📝 Sending WebSocket test ping');
+                    const testMessage = { 
+                        type: 'ping', 
+                        timestamp: new Date().toISOString(),
+                        admin_connect: true
+                    };
+                    ws.send(JSON.stringify(testMessage));
+                }
             };
             
             ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleMessage(data);
+                console.log('📨 Raw WebSocket message received:', event.data);
+                console.log('📊 WebSocket readyState when message received:', ws.readyState);
+                console.log('⏰ Message received at:', new Date().toISOString());
+                
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📝 Parsed WebSocket data:', JSON.stringify(data, null, 2));
+                    console.log('🔍 Message type:', data.type);
+                    console.log('👤 User ID:', data.userId);
+                    console.log('💬 Message content:', data.message);
+                    
+                    handleMessage(data);
+                } catch (error) {
+                    console.error('❌ Error parsing WebSocket message:', error);
+                    console.error('❌ Raw message that failed to parse:', event.data);
+                    console.error('❌ Error stack:', error.stack);
+                }
             };
             
-            ws.onclose = () => {
-                console.log('❌ WebSocket connection closed, reconnecting in 3 seconds...');
-                setTimeout(connectWebSocket, 3000);
+            ws.onclose = (event) => {
+                console.log('❌ WebSocket connection closed');
+                console.log('📊 Close code:', event.code);
+                console.log('📝 Close reason:', event.reason || 'No reason provided');
+                console.log('🔄 Was clean close:', event.wasClean);
+                console.log('📊 Final readyState:', ws.readyState);
+                
+                wsConnected = false;
+                updateConnectionStatus(false);
+                
+                // Reconnect logic with exponential backoff
+                if (event.code !== 1000) { // Not a normal close
+                    wsReconnectAttempts++;
+                    const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
+                    console.log(`🔄 Reconnecting in ${delay/1000} seconds... (attempt ${wsReconnectAttempts})`);
+                    setTimeout(() => {
+                        console.log('🔄 Attempting WebSocket reconnection...');
+                        connectWebSocket();
+                    }, delay);
+                } else {
+                    console.log('✅ WebSocket closed normally, not reconnecting');
+                }
             };
             
             ws.onerror = (error) => {
-                console.error('🚨 WebSocket error:', error);
+                console.error('🚨 WebSocket error occurred:', error);
+                console.error('📊 WebSocket readyState when error occurred:', ws.readyState);
+                console.error('🌐 Connection URL:', wsUrl);
+                console.error('⏰ Error occurred at:', new Date().toISOString());
+                
+                wsConnected = false;
+                updateConnectionStatus(false);
             };
+        }
+        
+        function updateConnectionStatus(connected) {
+            const statusIndicator = document.querySelector('.status-indicator');
+            if (statusIndicator) {
+                if (connected) {
+                    statusIndicator.style.background = 'var(--success)';
+                    const span = statusIndicator.querySelector('span');
+                    if (span) span.textContent = 'ออนไลน์';
+                    console.log('✅ Connection status updated: Online');
+                } else {
+                    statusIndicator.style.background = 'var(--warning)';
+                    const span = statusIndicator.querySelector('span');
+                    if (span) span.textContent = 'เชื่อมต่อใหม่...';
+                    console.log('⚠️ Connection status updated: Reconnecting...');
+                }
+            }
         }
 
         // Load users from database
@@ -1806,26 +1963,155 @@
             updateUsersList();
         }
 
-        // Handle WebSocket messages
+        // Handle WebSocket messages with Enhanced Processing
         function handleMessage(data) {
-            console.log('📨 Handling message:', data);
+            console.log('📨 Handling WebSocket message:', JSON.stringify(data, null, 2));
+            console.log('🔍 Message type detected:', data.type);
+            console.log('👤 Message user ID:', data.userId);
+            console.log('👤 Current selected user ID:', currentUserId);
             
             if (data.type === 'new_message' || data.type === 'new_user_request') {
-                addUser(data.userId, data.displayName, data.pictureUrl);
-                if (currentUserId === data.userId) {
-                    displayMessage(data.message, 'user', data.timestamp || new Date().toISOString());
+                console.log('🆕 Processing new message:', {
+                    userId: data.userId,
+                    currentUserId: currentUserId,
+                    message: data.message,
+                    displayName: data.displayName,
+                    timestamp: data.timestamp
+                });
+                
+                // Always add/update user in the list first
+                if (data.userId && data.displayName) {
+                    addUser(data.userId, data.displayName, data.pictureUrl);
+                    console.log('👤 Updated user in list:', data.displayName);
                 }
                 
-            } else if (data.type === 'bot_auto_reply') {
+                // If this user is currently selected, display message immediately
                 if (currentUserId === data.userId) {
-                    displayMessage(data.message, 'bot', data.timestamp || new Date().toISOString());
+                    console.log('💬 MATCH! Displaying new message for current user:', data.message);
+                    
+                    // Hide any existing typing indicator first
+                    hideTypingIndicator();
+                    
+                    displayMessage(
+                        data.message, 
+                        'user', 
+                        data.timestamp || new Date().toISOString(), 
+                        data.messageType || 'text'
+                    );
+                    
+                    // Show typing indicator if bot might respond
+                    if (data.type === 'new_message' || data.type === 'new_user_request') {
+                        setTimeout(() => {
+                            showTypingIndicator(data.userId);
+                        }, 500); // Small delay for better UX
+                    }
+                    
+                    // Show desktop notification for current user if window is hidden
+                    if (notificationSettings.desktop && document.hidden) {
+                        showNotification('ข้อความใหม่', data.message);
+                    }
+                    
+                    // Play sound notification
+                    if (notificationSettings.sound) {
+                        document.getElementById('notificationSound').play().catch(e => {
+                            console.log('Could not play notification sound:', e);
+                        });
+                    }
+                } else {
+                    // User not currently selected, update unread count
+                    console.log('📬 New message for different user, updating unread count');
+                    updateUnreadCount(data.userId);
+                    
+                    // Show desktop notification for other users
+                    const user = users.get(data.userId);
+                    if (user && notificationSettings.desktop) {
+                        showNotification(`ข้อความจาก ${user.displayName}`, data.message);
+                    }
+                    
+                    // Play sound for any new message
+                    if (notificationSettings.sound) {
+                        document.getElementById('notificationSound').play().catch(e => {
+                            console.log('Could not play notification sound:', e);
+                        });
+                    }
+                }
+                
+                // Update user list display
+                updateUsersList();
+                console.log('✅ User list updated after new message');
+                
+            } else if (data.type === 'bot_auto_reply' || data.type === 'bot_response_complete') {
+                console.log('🤖 Processing bot auto reply:', {
+                    userId: data.userId,
+                    currentUserId: currentUserId,
+                    message: data.message
+                });
+                
+                if (currentUserId === data.userId) {
+                    console.log('🤖 MATCH! Displaying bot reply for current user:', data.message);
+                    
+                    // Hide typing indicator before showing bot response
+                    hideTypingIndicator();
+                    
+                    displayMessage(
+                        data.message, 
+                        'bot', 
+                        data.timestamp || new Date().toISOString()
+                    );
+                }
+                
+            } else if (data.type === 'bot_typing_start') {
+                console.log('🤖 Bot started typing for user:', data.userId);
+                if (currentUserId === data.userId) {
+                    showTypingIndicator(data.userId);
+                }
+                
+            } else if (data.type === 'bot_typing_stop') {
+                console.log('🤖 Bot stopped typing for user:', data.userId);
+                if (currentUserId === data.userId) {
+                    hideTypingIndicator();
                 }
                 
             } else if (data.type === 'mode_changed') {
+                console.log('⚙️ Processing mode change:', {
+                    userId: data.userId,
+                    currentUserId: currentUserId,
+                    mode: data.mode,
+                    message: data.message
+                });
+                
                 if (currentUserId === data.userId) {
-                    displayMessage(data.message, 'system', data.timestamp || new Date().toISOString());
+                    console.log('⚙️ MATCH! Displaying mode change for current user');
+                    displayMessage(
+                        data.message, 
+                        'system', 
+                        data.timestamp || new Date().toISOString()
+                    );
+                    
+                    // Update mode buttons
+                    currentMode = data.mode;
+                    document.querySelectorAll('.mode-option').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.mode === data.mode);
+                    });
                 }
+                
+            } else if (data.type === 'ping') {
+                console.log('💗 Received ping from server - connection is alive');
+                // Send pong back
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+                }
+                
+            } else {
+                console.log('❓ Unknown message type received:', data.type);
+                console.log('📝 Full message data:', data);
             }
+            
+            // Debug: Log current state after processing
+            console.log('🔍 After message processing:');
+            console.log('👤 Current User ID:', currentUserId);
+            console.log('📊 Total Users:', users.size);
+            console.log('🔌 WebSocket Connected:', wsConnected);
         }
 
         // Add user to list
@@ -1842,6 +2128,38 @@
                     chatMode: 'manual'
                 });
                 updateUsersList();
+            }
+        }
+        
+        // Update unread count for a user
+        function updateUnreadCount(userId) {
+            if (users.has(userId)) {
+                const user = users.get(userId);
+                user.unreadCount = (user.unreadCount || 0) + 1;
+                user.isOnline = true;
+                user.status = 'กำลังแชท';
+                console.log(`📬 Updated unread count for ${userId}: ${user.unreadCount}`);
+                
+                // Update the UI immediately for this user
+                updateUsersList();
+                
+                // Update total unread count
+                updateTotalUnreadCount();
+            }
+        }
+        
+        function updateTotalUnreadCount() {
+            let total = 0;
+            users.forEach(user => {
+                total += user.unreadCount || 0;
+            });
+            totalUnreadCount = total;
+            
+            // Update document title with unread count
+            if (totalUnreadCount > 0) {
+                document.title = `(${totalUnreadCount}) ${originalTitle}`;
+            } else {
+                document.title = originalTitle;
             }
         }
 
@@ -1911,36 +2229,79 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM Content Loaded, initializing admin chat app...');
+            console.log('🌐 Current URL:', window.location.href);
+            console.log('🔧 User Agent:', navigator.userAgent);
+            
+            // Initialize app components
             initializeApp();
             setupEventListeners();
             setupKeyboardShortcuts();
             loadTheme();
+            
+            // Initialize WebSocket connection with detailed logging
+            console.log('🔌 Initializing WebSocket connection...');
+            console.log('🔌 WebSocket support:', 'WebSocket' in window ? 'Yes' : 'No');
             connectWebSocket();
-            loadUsersFromDatabase();
+            
+            // Load users from database with retry mechanism
+            console.log('📊 Loading users from database...');
+            loadUsersFromDatabase().catch(error => {
+                console.error('❌ Failed to load users on startup:', error);
+                console.log('🔄 Retrying user load in 5 seconds...');
+                setTimeout(() => {
+                    loadUsersFromDatabase().catch(retryError => {
+                        console.error('❌ Retry failed, loading sample data:', retryError);
+                        loadSampleData();
+                    });
+                }, 5000);
+            });
             
             // Set bot mode as default active
             updateBottomNavigation();
             
-            // Check system status every 30 seconds
+            // Enhanced system status monitoring
+            let statusCheckCount = 0;
             setInterval(async () => {
+                statusCheckCount++;
+                console.log(`📊 System status check #${statusCheckCount}`);
+                
                 try {
                     const statusResponse = await fetch('/admin/status');
                     if (statusResponse.ok) {
                         const status = await statusResponse.json();
+                        console.log('📊 System status:', status);
                         
-                        // Update status indicator
+                        // Update status indicator with more detailed logic
                         const statusIndicator = document.querySelector('.status-indicator');
-                        if (status.ai_available && status.database_available) {
-                            statusIndicator.style.background = 'var(--success)';
-                            statusIndicator.querySelector('span').textContent = 'ออนไลน์';
-                        } else {
-                            statusIndicator.style.background = 'var(--warning)';
-                            statusIndicator.querySelector('span').textContent = 'ปัญหาระบบ';
+                        if (statusIndicator) {
+                            if (status.ai_available && status.database_available && wsConnected) {
+                                statusIndicator.style.background = 'var(--success)';
+                                statusIndicator.querySelector('span').textContent = 'ออนไลน์';
+                            } else if (!wsConnected) {
+                                statusIndicator.style.background = 'var(--warning)';
+                                statusIndicator.querySelector('span').textContent = 'WebSocket ขาด';
+                            } else if (!status.database_available) {
+                                statusIndicator.style.background = 'var(--error)';
+                                statusIndicator.querySelector('span').textContent = 'DB ปัญหา';
+                            } else if (!status.ai_available) {
+                                statusIndicator.style.background = 'var(--warning)';
+                                statusIndicator.querySelector('span').textContent = 'AI ปัญหา';
+                            } else {
+                                statusIndicator.style.background = 'var(--warning)';
+                                statusIndicator.querySelector('span').textContent = 'ปัญหาระบบ';
+                            }
                         }
+                        
+                        // Enhanced logging
+                        console.log(`📊 Status Check #${statusCheckCount} - WebSocket: ${wsConnected ? '✅' : '❌'}, DB: ${status.database_available ? '✅' : '❌'}, AI: ${status.ai_available ? '✅' : '❌'}`);
+                    } else {
+                        console.error('❌ Status check failed with status:', statusResponse.status);
+                        throw new Error(`HTTP ${statusResponse.status}`);
                     }
                 } catch (error) {
-                    console.error('Error checking system status:', error);
-                    console.error('Error details:', {
+                    console.error('🚨 System status check error:', error);
+                    console.error('🚨 Error details:', {
                         message: error.message,
                         type: error.constructor.name,
                         stack: error.stack
@@ -1956,6 +2317,37 @@
                     }
                 }
             }, 30000);
+            
+            // Enhanced WebSocket health monitoring
+            let wsHealthCheckCount = 0;
+            setInterval(() => {
+                wsHealthCheckCount++;
+                console.log(`💗 WebSocket health check #${wsHealthCheckCount}`);
+                
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    console.log('💗 WebSocket health check: ✅ Connected');
+                    try {
+                        ws.send(JSON.stringify({ 
+                            type: 'ping', 
+                            timestamp: new Date().toISOString(),
+                            healthCheck: wsHealthCheckCount
+                        }));
+                        console.log('💗 Health ping sent successfully');
+                    } catch (error) {
+                        console.error('❌ Failed to send health ping:', error);
+                        wsConnected = false;
+                        connectWebSocket();
+                    }
+                } else {
+                    console.log('❌ WebSocket health check: Disconnected (state:', ws ? ws.readyState : 'null', ')');
+                    if (!wsConnected) {
+                        console.log('🔄 Attempting WebSocket reconnection due to health check...');
+                        connectWebSocket();
+                    }
+                }
+            }, 60000); // Check every minute
+            
+            console.log('✅ Admin chat application initialized successfully');
         });
 
         function initializeApp() {
@@ -1980,7 +2372,7 @@
                 if (e.touches.length > 1) {
                     e.preventDefault();
                 }
-            });
+            }, { passive: false });
 
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase();
@@ -2175,32 +2567,159 @@
 
         // Load messages from database
         async function loadMessagesFromDatabase(userId) {
+            console.log('📥 Loading messages for user:', userId);
+            
+            // Show loading indicator
+            const messagesList = document.getElementById('messagesList');
+            messagesList.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">🔄 กำลังโหลดข้อความ...</div>';
+            
             try {
-                const response = await fetch(`/admin/messages/${userId}`);
+                const response = await fetch(`/admin/messages/${userId}?limit=100&offset=0`);
                 if (response.ok) {
                     const data = await response.json();
-                    const messagesList = document.getElementById('messagesList');
-                    messagesList.innerHTML = ''; // Clear existing messages
-                    
-                    console.log('Loaded messages:', data.messages); // Debug logging
-                    
-                    data.messages.forEach(msg => {
-                        console.log('Processing message:', msg.message, 'Type:', msg.sender_type, 'Timestamp:', msg.created_at); // Debug logging
-                        displayMessage(msg.message, msg.sender_type, msg.created_at);
-                    });
+                    messagesList.innerHTML = ''; // Clear loading indicator
+
+                    console.log('📊 Loaded messages:', data.messages?.length || 0, 'messages'); // Debug logging
+
+                    if (data.messages && data.messages.length > 0) {
+                        let messageCount = 0;
+                        data.messages.forEach(msg => {
+                            if (msg.message && msg.sender_type && msg.created_at) {
+                                console.log('📝 Processing message:', msg.message.substring(0, 50) + '...', 'Type:', msg.sender_type); 
+                                displayMessage(msg.message, msg.sender_type, msg.created_at);
+                                messageCount++;
+                            } else {
+                                console.warn('⚠️ Skipping malformed message:', msg);
+                            }
+                        });
+                        console.log(`✅ Successfully displayed ${messageCount} messages`);
+                    } else {
+                        // No messages found
+                        messagesList.innerHTML = `
+                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <i class="fas fa-comment-slash" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
+                                <div>ยังไม่มีข้อความในการสนทนานี้</div>
+                                <div style="font-size: 0.875rem; margin-top: 8px;">เริ่มแชทเพื่อดูประวัติการสนทนา</div>
+                            </div>
+                        `;
+                    }
                     scrollToBottom();
                 } else {
-                    console.error('Failed to load messages:', response.status);
+                    console.error('❌ Failed to load messages. Status:', response.status);
+                    messagesList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--error);">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                            <div>ไม่สามารถโหลดข้อความได้</div>
+                            <div style="font-size: 0.875rem; margin-top: 8px;">กรุณาลองใหม่อีกครั้ง</div>
+                        </div>
+                    `;
                 }
             } catch (error) {
-                console.error('Error loading messages:', error);
+                console.error('❌ Error loading messages:', error);
+                messagesList.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--error);">
+                        <i class="fas fa-wifi" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                        <div>เกิดข้อผิดพลาดในการเชื่อมต่อ</div>
+                        <div style="font-size: 0.875rem; margin-top: 8px;">ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต</div>
+                    </div>
+                `;
             }
         }
 
-        function displayMessage(message, type, timestamp) {
+        // Typing indicator functions
+        function showTypingIndicator(userId = null) {
+            console.log('🤖 Showing typing indicator for user:', userId || 'current');
+            
             const messagesList = document.getElementById('messagesList');
+            if (!messagesList) {
+                console.error('❌ messagesList element not found!');
+                return;
+            }
+            
+            // Remove any existing typing indicator
+            hideTypingIndicator();
+            
+            // Create typing indicator element
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'typing-indicator';
+            typingIndicator.id = 'typingIndicator';
+            
+            typingIndicator.innerHTML = `
+                <div class="message-avatar">
+                    🤖
+                </div>
+                <div class="typing-bubble">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <div class="typing-text">บอทกำลังพิมพ์...</div>
+                </div>
+            `;
+            
+            // Add to messages list
+            messagesList.appendChild(typingIndicator);
+            
+            // Scroll to bottom
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            console.log('✅ Typing indicator shown');
+        }
+        
+        function hideTypingIndicator() {
+            console.log('🤖 Hiding typing indicator');
+            
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                // Fade out animation
+                typingIndicator.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+                typingIndicator.style.opacity = '0';
+                typingIndicator.style.transform = 'translateY(-10px)';
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (typingIndicator.parentNode) {
+                        typingIndicator.parentNode.removeChild(typingIndicator);
+                    }
+                }, 300);
+                
+                console.log('✅ Typing indicator hidden');
+            }
+        }
+
+        function displayMessage(message, senderType, timestamp, messageType = 'text') {
+            console.log('💬 displayMessage called with params:', { 
+                message: message,
+                senderType: senderType, 
+                timestamp: timestamp, 
+                messageType: messageType,
+                currentUser: currentUserId
+            });
+            
+            const messagesList = document.getElementById('messagesList');
+            
+            if (!messagesList) {
+                console.error('❌ messagesList element not found!');
+                return;
+            }
+            
+            // Validate message content
+            if (!message || message.trim() === '') {
+                console.warn('⚠️ Empty message content, skipping display');
+                return;
+            }
+            
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
+            messageDiv.className = `message ${senderType}`;
+            console.log('📄 Created message div with class:', messageDiv.className);
+            
+            // Add fade-in animation for new messages
+            messageDiv.style.opacity = '0';
+            messageDiv.style.transform = 'translateY(20px)';
             
             // Enhanced timestamp handling with Thai timezone
             let time;
@@ -2208,6 +2727,7 @@
                 const date = new Date(timestamp);
                 // Check if the date is valid
                 if (isNaN(date.getTime())) {
+                    console.warn('⚠️ Invalid timestamp, using current time:', timestamp);
                     time = new Date().toLocaleTimeString('th-TH', { 
                         timeZone: 'Asia/Bangkok',
                         hour: '2-digit', 
@@ -2223,7 +2743,7 @@
                     });
                 }
             } catch (e) {
-                console.error('Error parsing timestamp:', timestamp, e);
+                console.error('❌ Error parsing timestamp:', timestamp, e);
                 time = new Date().toLocaleTimeString('th-TH', { 
                     timeZone: 'Asia/Bangkok',
                     hour: '2-digit', 
@@ -2233,30 +2753,90 @@
             }
 
             let avatarContent = '';
-            if (type === 'user' && currentUserId) {
+            if (senderType === 'user' && currentUserId) {
                 const user = users.get(currentUserId);
                 if (user) {
                     avatarContent = createAvatarContent(user, 'user');
                 } else {
                     avatarContent = `<img src="${getDefaultAvatar('user')}" alt="User Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>U</span>';">`;
                 }
-            } else if (type === 'admin') {
+            } else if (senderType === 'admin') {
                 avatarContent = `<img src="${getDefaultAvatar('admin')}" alt="Admin Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>A</span>';">`;
-            } else if (type === 'bot' || type === 'ai_bot') {
+            } else if (senderType === 'bot' || senderType === 'ai_bot') {
                 avatarContent = `<img src="${getDefaultAvatar('bot')}" alt="Bot Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>🤖</span>';">`;
+            } else if (senderType === 'system') {
+                avatarContent = `<span>⚙️</span>`;
             } else {
-                avatarContent = `<span>${type.charAt(0).toUpperCase()}</span>`;
+                avatarContent = `<span>${senderType.charAt(0).toUpperCase()}</span>`;
             }
+
+            // Escape HTML in message content for security
+            const escapedMessage = message.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
             messageDiv.innerHTML = `
                 <div class="message-avatar">${avatarContent}</div>
                 <div class="message-content">
-                    <div class="message-bubble">${message}</div>
+                    <div class="message-bubble">${escapedMessage}</div>
                     <div class="message-time">${time}</div>
                 </div>
             `;
+            
+            // Add message to the list
             messagesList.appendChild(messageDiv);
+            console.log('✅ Message added to messagesList, total messages:', messagesList.children.length);
+            
+            // Animate the message appearance
+            requestAnimationFrame(() => {
+                messageDiv.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+                messageDiv.style.opacity = '1';
+                messageDiv.style.transform = 'translateY(0)';
+            });
+            
+            // Auto-scroll to bottom
             scrollToBottom();
+            console.log('📜 Scrolled to bottom after new message');
+            
+            // Play notification sound for new messages (only for user messages)
+            if (notificationSettings.sound && senderType === 'user') {
+                const audio = document.getElementById('notificationSound');
+                if (audio) {
+                    audio.play().catch(e => {
+                        console.log('Could not play notification sound:', e);
+                    });
+                }
+            }
+            
+            console.log('✅ Message display completed successfully');
+        }
+
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            messagesList.appendChild(messageDiv);
+            console.log('✅ Message added to messagesList, total messages:', messagesList.children.length);
+            
+            // Animate the message appearance
+            requestAnimationFrame(() => {
+                messageDiv.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+                messageDiv.style.opacity = '1';
+                messageDiv.style.transform = 'translateY(0)';
+            });
+            
+            // Auto-scroll to bottom
+            scrollToBottom();
+            console.log('📜 Scrolled to bottom after new message');
+            
+            // Play notification sound for new messages (only for user messages)
+            if (notificationSettings.sound && senderType === 'user') {
+                const audio = document.getElementById('notificationSound');
+                if (audio) {
+                    audio.play().catch(e => {
+                        console.log('Could not play notification sound:', e);
+                    });
+                }
+            }
+            
+            console.log('✅ Message display completed successfully');
         }
 
         function scrollToBottom() {

@@ -1,0 +1,162 @@
+sendTestMessage()">Send Test</button>
+        <button onclick="connectWebSocket()">Connect</button>
+        <button onclick="disconnectWebSocket()">Disconnect</button>
+    </div>
+    
+    <div id="messages"></div>
+    
+    <script>
+        let ws = null;
+        let connected = false;
+        
+        function updateStatus(isConnected, message = '') {
+            const statusDiv = document.getElementById('status');
+            if (isConnected) {
+                statusDiv.className = 'connected';
+                statusDiv.innerHTML = '✅ Connected' + (message ? ` - ${message}` : '');
+                connected = true;
+            } else {
+                statusDiv.className = 'disconnected';
+                statusDiv.innerHTML = '❌ Disconnected' + (message ? ` - ${message}` : '');
+                connected = false;
+            }
+        }
+        
+        function addMessage(message, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                addMessage('Already connected!', 'warning');
+                return;
+            }
+            
+            const wsUrl = `ws://localhost:8000/ws`;
+            addMessage(`Connecting to ${wsUrl}...`);
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                updateStatus(true, 'WebSocket connected');
+                addMessage('✅ WebSocket connected successfully!', 'success');
+            };
+            
+            ws.onmessage = (event) => {
+                addMessage(`📨 Received: ${event.data}`, 'received');
+                try {
+                    const data = JSON.parse(event.data);
+                    addMessage(`📝 Parsed: ${JSON.stringify(data, null, 2)}`, 'parsed');
+                } catch (e) {
+                    addMessage(`⚠️ Could not parse as JSON: ${e.message}`, 'warning');
+                }
+            };
+            
+            ws.onclose = (event) => {
+                updateStatus(false, `Code: ${event.code}, Reason: ${event.reason}`);
+                addMessage(`❌ WebSocket closed: Code ${event.code}, Reason: ${event.reason}`, 'error');
+            };
+            
+            ws.onerror = (error) => {
+                updateStatus(false, 'Connection error');
+                addMessage(`🚨 WebSocket error: ${error}`, 'error');
+            };
+        }
+        
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                addMessage('Disconnecting WebSocket...', 'info');
+            } else {
+                addMessage('No active connection to disconnect', 'warning');
+            }
+        }
+        
+        function sendTestMessage() {
+            if (!connected || !ws) {
+                addMessage('❌ Not connected! Please connect first.', 'error');
+                return;
+            }
+            
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) {
+                addMessage('⚠️ Please enter a message', 'warning');
+                return;
+            }
+            
+            const testData = {
+                type: 'test_from_browser',
+                message: message,
+                timestamp: new Date().toISOString(),
+                source: 'websocket_test_page'
+            };
+            
+            try {
+                ws.send(JSON.stringify(testData));
+                addMessage(`📤 Sent: ${JSON.stringify(testData, null, 2)}`, 'sent');
+                input.value = '';
+            } catch (error) {
+                addMessage(`❌ Failed to send: ${error.message}`, 'error');
+            }
+        }
+        
+        function sendSimulatedUserMessage() {
+            if (!connected || !ws) {
+                addMessage('❌ Not connected!', 'error');
+                return;
+            }
+            
+            const simulatedMessage = {
+                type: 'new_message',
+                userId: 'test_user_websocket',
+                message: 'สวัสดีครับ นี่คือข้อความทดสอบจาก WebSocket Test',
+                displayName: 'ผู้ใช้ทดสอบ WebSocket',
+                pictureUrl: null,
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                ws.send(JSON.stringify(simulatedMessage));
+                addMessage(`📤 Sent simulated user message`, 'sent');
+            } catch (error) {
+                addMessage(`❌ Failed to send: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            addMessage('🚀 Page loaded. Click Connect to test WebSocket.', 'info');
+        });
+        
+        // Handle Enter key in input
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendTestMessage();
+            }
+        });
+    </script>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+        <h3>การทดสอบ:</h3>
+        <ol>
+            <li>คลิก "Connect" เพื่อเชื่อมต่อ WebSocket</li>
+            <li>ดู status indicator ที่ด้านบน</li>
+            <li>พิมพ์ข้อความและคลิก "Send Test"</li>
+            <li>ดูว่าข้อความได้รับการส่งและรับกลับมาไหม</li>
+        </ol>
+        
+        <button onclick="sendSimulatedUserMessage()" style="background: #28a745; color: white; border: none; padding: 10px 15px; border-radius: 5px; margin-top: 10px;">
+            📱 Send Simulated User Message
+        </button>
+        
+        <p><strong>หมายเหตุ:</strong> หากทดสอบนี้ใช้งานได้ แต่หน้าแอดมินยังไม่แสดงข้อความใหม่ ปัญหาอยู่ที่การจัดการข้อความในหน้าแอดมิน</p>
+    </div>
+</body>
+</html>

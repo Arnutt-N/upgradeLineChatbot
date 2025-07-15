@@ -31,6 +31,7 @@ from app.db.crud_enhanced import (
 # =======================================================================
 from app.schemas.chat import ReplyPayload, EndChatPayload, ToggleModePayload
 from app.services.ws_manager import manager
+from app.services.line_handler_enhanced import show_loading_animation
 
 # ตั้งค่า Templates - อ้างอิงจาก root project directory
 templates = Jinja2Templates(directory="templates")
@@ -70,14 +71,7 @@ async def admin_reply(payload: ReplyPayload, db: AsyncSession = Depends(get_db))
         line_bot_api = get_line_bot_api()
         
         # 1. แสดง loading animation
-        try:
-            loading_request = ShowLoadingAnimationRequest(
-                chat_id=payload.user_id,
-                loading_seconds=2
-            )
-            await line_bot_api.show_loading_animation(loading_request)
-        except Exception as e:
-            print(f"Error showing loading animation: {e}")
+        await show_loading_animation(line_bot_api, payload.user_id, seconds=3)
         
         # 2. บันทึกข้อความของแอดมินลง DB (ใช้ฟังก์ชันใหม่)
         await save_chat_to_history(
@@ -189,27 +183,39 @@ async def get_users_list(db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/admin/messages/{user_id}", summary="API สำหรับโหลดข้อความของผู้ใช้")
-async def get_user_messages(user_id: str, db: AsyncSession = Depends(get_db)):
+async def get_user_messages(user_id: str, limit: int = 100, offset: int = 0, db: AsyncSession = Depends(get_db)):
     try:
+        print(f"Loading messages for user: {user_id} (limit: {limit}, offset: {offset})")
+        
         # ใช้ฟังก์ชันใหม่ในการดึงประวัติแชท
-        messages = await get_all_chat_history_by_user(db, user_id)
+        messages = await get_all_chat_history_by_user(db, user_id, limit=limit, offset=offset)
         messages_list = []
         
-        for msg in messages:
-            # Convert timestamp to Thai timezone using utility
-            thai_time = convert_to_thai_time(msg.timestamp)
-            
-            messages_list.append({
-                "id": msg.id,
-                # แก้ไขชื่อคอลัมน์ให้ตรงกับ ChatHistory
-                "message": msg.message_content,
-                "sender_type": msg.message_type,
-                "created_at": thai_time.isoformat()
-            })
+        print(f"Found {len(messages)} messages for user {user_id}")
         
-        return {"messages": messages_list}
+        for msg in messages:
+            try:
+                # Convert timestamp to Thai timezone using utility
+                thai_time = convert_to_thai_time(msg.timestamp)
+                
+                messages_list.append({
+                    "id": msg.id,
+                    # แก้ไขชื่อคอลัมน์ให้ตรงกับ ChatHistory
+                    "message": msg.message_content or "",
+                    "sender_type": msg.message_type or "user",
+                    "created_at": thai_time.isoformat()
+                })
+            except Exception as msg_error:
+                print(f"⚠️ Error processing message {msg.id}: {msg_error}")
+                # Skip malformed messages but continue processing
+                continue
+        
+        print(f"Successfully processed {len(messages_list)} messages for user {user_id}")
+        return {"messages": messages_list, "total": len(messages_list)}
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error loading messages for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load messages: {str(e)}")
 
 @router.get("/admin/status", summary="API สำหรับตรวจสอบสถานะระบบ")
 async def get_system_status(db: AsyncSession = Depends(get_db)):
@@ -230,10 +236,12 @@ async def get_system_status(db: AsyncSession = Depends(get_db)):
         try:
             from sqlalchemy import text
             result = await db.execute(text("SELECT 1"))
-            await result.fetchone()
+            result.scalar()  # ลบ await ออก
+            print("✅ Database health check passed")
         except Exception as e:
             db_available = False
             db_error = str(e)
+            print(f"❌ Database health check failed: {e}")
         
         # Check Telegram configuration
         telegram_configured = bool(settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID)

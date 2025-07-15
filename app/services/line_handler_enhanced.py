@@ -171,19 +171,73 @@ async def send_to_telegram_actual(
 # Enhanced Event Handlers
 # ========================================
 
-async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str, seconds: int = 3):
-    """แสดง loading animation พร้อมการกำหนดเวลา"""
+async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str, seconds: int = 5):
+    """Show loading animation in LINE app using direct API call matching curl format"""
     try:
-        # Maximum allowed loading time is 60 seconds
-        loading_seconds = min(seconds, 60)
+        # LINE API requires loadingSeconds to be between 5-60 and multiple of 5
+        loading_seconds = max(5, min(seconds, 60))  # Minimum 5, maximum 60
+        # Round to nearest multiple of 5
+        loading_seconds = round(loading_seconds / 5) * 5
         
-        loading_request = ShowLoadingAnimationRequest(
-            chat_id=user_id,
-            loading_seconds=loading_seconds
-        )
-        await line_bot_api.show_loading_animation(loading_request)
+        # Use direct HTTP API call with exact format from curl example
+        import httpx
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {settings.LINE_CHANNEL_ACCESS_TOKEN}'
+        }
+        
+        # Use exact payload format from curl example
+        payload = {
+            "chatId": user_id,
+            "loadingSeconds": loading_seconds
+        }
+        
+        # Validate user ID format (LINE user IDs start with 'U' and are 33 chars long)
+        if not user_id.startswith('U') or len(user_id) != 33:
+            print(f"Invalid user ID format: {user_id} (must be U + 32 hex chars)")
+            return False
+            
+        print(f"Sending loading animation API call for user {user_id[-6:]}")
+        print(f"URL: https://api.line.me/v2/bot/chat/loading/start")
+        print(f"Payload: {payload}")
+        
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                'https://api.line.me/v2/bot/chat/loading/start',
+                headers=headers,
+                json=payload
+            )
+            
+            print(f"Loading API response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                print(f"SUCCESS: Loading animation started for user {user_id[-6:]} ({loading_seconds}s)")
+                return True
+            elif response.status_code == 202:
+                print(f"SUCCESS: Loading animation accepted for user {user_id[-6:]} ({loading_seconds}s)")
+                return True
+            elif response.status_code == 400:
+                print(f"BAD REQUEST: Invalid parameters or user not in active chat")
+                print(f"Response: {response.text}")
+                return False
+            elif response.status_code == 401:
+                print(f"UNAUTHORIZED: Invalid access token")
+                print(f"Response: {response.text}")
+                return False
+            elif response.status_code == 403:
+                print(f"FORBIDDEN: User not in one-on-one chat or not viewing chat")
+                print(f"Response: {response.text}")
+                return False
+            else:
+                print(f"FAILED: Loading animation API returned {response.status_code}")
+                print(f"Response: {response.text}")
+                return False
+                
     except Exception as e:
-        print(f"Could not show loading animation: {e}")
+        print(f"ERROR: Could not show loading animation: {e}")
+        print(f"User ID: {user_id}, Seconds: {seconds}")
+        return False
 
 async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
     """จัดการข้อความ - Enhanced version with comprehensive tracking"""
@@ -206,6 +260,17 @@ async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bo
     
     # บันทึกใน chat_messages เดิมด้วย (เพื่อ backward compatibility)
     await save_chat_message(db, user_id, 'user', message_text)
+    
+    # Broadcast new message to admin panel via WebSocket
+    await manager.broadcast({
+        "type": "new_message",
+        "userId": user_id,
+        "message": message_text,
+        "displayName": profile_data['display_name'],
+        "pictureUrl": profile_data['picture_url'],
+        "sessionId": session_id,
+        "timestamp": thai_time.isoformat()
+    })
     
     user_status = await get_or_create_user_status(
         db, user_id, profile_data['display_name'], profile_data['picture_url']
@@ -240,6 +305,13 @@ async def handle_live_chat_message(
     # Handle auto mode with AI response
     if user_status.chat_mode == 'auto':
         await show_loading_animation(line_bot_api, user_id)
+        
+        # Broadcast typing indicator to admin
+        await manager.broadcast({
+            "type": "bot_typing_start",
+            "userId": user_id,
+            "timestamp": thai_time.isoformat()
+        })
         
         # Try to get AI response using Gemini
         ai_available = await check_gemini_availability()
@@ -316,8 +388,16 @@ async def handle_live_chat_message(
                 message=f"Failed to send auto reply: {str(e)}", user_id=user_id
             )
         
+        # Stop typing indicator and broadcast response
         await manager.broadcast({
-            "type": "bot_auto_reply", "userId": user_id, "message": bot_response, "sessionId": session_id
+            "type": "bot_typing_stop",
+            "userId": user_id,
+            "timestamp": thai_time.isoformat()
+        })
+        
+        await manager.broadcast({
+            "type": "bot_auto_reply", "userId": user_id, "message": bot_response, "sessionId": session_id,
+            "timestamp": thai_time.isoformat()
         })
 
 async def handle_bot_mode_message(
@@ -365,6 +445,13 @@ async def handle_bot_mode_message(
         })
     else:
         await show_loading_animation(line_bot_api, user_id)
+        
+        # Broadcast typing indicator to admin
+        await manager.broadcast({
+            "type": "bot_typing_start",
+            "userId": user_id,
+            "timestamp": thai_time.isoformat()
+        })
         
         # Try to get AI response using Gemini with proper system prompt
         ai_available = await check_gemini_availability()
@@ -428,6 +515,13 @@ async def handle_bot_mode_message(
                 db=db, level="error", category="line_webhook", subcategory="bot_reply_failed",
                 message=f"Failed to send bot reply: {str(e)}", user_id=user_id
             )
+        
+        # Stop typing indicator after bot response is sent
+        await manager.broadcast({
+            "type": "bot_typing_stop",
+            "userId": user_id,
+            "timestamp": thai_time.isoformat()
+        })
 
 # ========================================
 # Friend Event Handlers
@@ -472,6 +566,16 @@ async def handle_follow_event(event: FollowEvent, db: AsyncSession, line_bot_api
         data={"user_profile": profile_data, "timestamp": thai_time.isoformat(), "event_type": "new_friend"}
     )
 
+    # Broadcast friend status change via WebSocket
+    await manager.broadcast({
+        "type": "friend_status_change",
+        "userId": user_id,
+        "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
+        "pictureUrl": profile_data.get('picture_url'),
+        "status": "followed",
+        "timestamp": thai_time.isoformat()
+    })
+
 async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
     """จัดการเมื่อมีคนยกเลิกการติดตาม"""
     user_id = event.source.user_id
@@ -511,6 +615,16 @@ async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession, line_bot
         user_id=user_id, priority=1,
         data={"user_profile": profile_data, "timestamp": thai_time.isoformat(), "event_type": "friend_left"}
     )
+
+    # Broadcast friend status change via WebSocket
+    await manager.broadcast({
+        "type": "friend_status_change",
+        "userId": user_id,
+        "displayName": profile_data.get('display_name', f"User {user_id[-6:]}"),
+        "pictureUrl": profile_data.get('picture_url', None), # Use None if not available
+        "status": "unfollowed",
+        "timestamp": thai_time.isoformat()
+    })
 
 # ========================================
 # Image and File Message Handlers

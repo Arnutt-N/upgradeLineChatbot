@@ -34,7 +34,7 @@ async def test_enhanced_functions():
                 db=db,
                 user_id="test_user_001",
                 message_type="user",
-                message_content="สวัสดีครับ ทดสอบระบบใหม่",
+                message_content="สวัสดีค่ะ ทดสอบระบบใหม่",
                 session_id="test_session_001",
                 metadata={"test": True, "source": "test_script"}
             )

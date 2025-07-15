@@ -13,6 +13,7 @@ class EnhancedDashboard {
         await this.loadSystemHealth();
         this.initializeTooltips();
         this.startAutoRefresh();
+        this.setupWebSocket(); // Add WebSocket setup
     }
 
     async fetchData(url, options = {}) {
@@ -496,7 +497,88 @@ class EnhancedDashboard {
         console.log(`Async Performance [${name}]: ${(end - start).toFixed(2)}ms`);
         return result;
     }
-}
+
+    setupWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+        this.ws = new WebSocket(wsUrl);
+
+        this.ws.onopen = (event) => {
+            console.log('WebSocket connected:', event);
+            this.showNotification('Connected', 'Real-time updates enabled.', 'success');
+        };
+
+        this.ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log('WebSocket message received:', data);
+            this.handleWebSocketMessage(data);
+        };
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            this.showNotification('Error', 'WebSocket connection error.', 'error');
+        };
+
+        this.ws.onclose = (event) => {
+            console.log('WebSocket closed:', event);
+            this.showNotification('Disconnected', 'Real-time updates disconnected. Attempting to reconnect...', 'warning');
+            // Attempt to reconnect after a delay
+            setTimeout(() => this.setupWebSocket(), 5000);
+        };
+    }
+
+    handleWebSocketMessage(data) {
+        switch (data.type) {
+            case 'new_message':
+                this.showNotification('New Message', `From ${data.user_id}: ${data.message}`, 'info');
+                this.loadDashboardData(); // Refresh stats that might include new messages
+                this.loadRecentActivities(); // Update activities list
+                break;
+            case 'friend_status_change':
+                this.showNotification('Friend Status', `${data.user_id} is now ${data.status}.`, 'info');
+                this.loadRecentActivities(); // Update activities list
+                this.loadDashboardData(); // Refresh user stats
+                break;
+            case 'bot_response_loading':
+                // Display loading animation for the specific user/chat
+                this.showLoadingAnimation(data.user_id);
+                break;
+            case 'bot_response_complete':
+                // Hide loading animation
+                this.hideLoadingAnimation(data.user_id);
+                this.showNotification('Bot Response', `Bot responded to ${data.user_id}.`, 'success');
+                this.loadRecentActivities();
+                break;
+            case 'human_chat_request':
+                this.showNotification('Human Chat Request', `${data.user_id} wants to chat with a human.`, 'warning', 0); // Persistent notification
+                // Potentially highlight the user in a UI list
+                break;
+            case 'system_update':
+                this.showNotification('System Update', data.message, 'info');
+                this.loadSystemHealth();
+                this.loadDashboardData();
+                break;
+            default:
+                console.log('Unknown WebSocket message type:', data.type);
+        }
+    }
+
+    showLoadingAnimation(userId) {
+        // Implement logic to show a loading animation next to the user's chat or message area
+        // This would typically involve adding/removing a CSS class or element
+        console.log(`Showing loading animation for user: ${userId}`);
+        // Example: You might have a specific element for each user's chat
+        // const userChatElement = document.getElementById(`chat-${userId}`);
+        // if (userChatElement) { userChatElement.classList.add('loading'); }
+    }
+
+    hideLoadingAnimation(userId) {
+        // Implement logic to hide the loading animation
+        console.log(`Hiding loading animation for user: ${userId}`);
+        // Example:
+        // const userChatElement = document.getElementById(`chat-${userId}`);
+        // if (userChatElement) { userChatElement.classList.remove('loading'); }
+    }
 
 // Global dashboard instance
 let dashboard;

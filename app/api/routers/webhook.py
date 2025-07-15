@@ -12,9 +12,9 @@ from linebot.v3.webhooks import (
 from app.core.config import settings
 from app.db.database import get_db
 from app.services.line_handler_enhanced import (
-    handle_follow_event, handle_unfollow_event
+    handle_follow_event, handle_unfollow_event, handle_message_enhanced,
+    handle_image_message_enhanced, handle_file_message_enhanced
 )
-from app.services.message_handler import process_line_message
 from app.db.crud_enhanced import log_system_event
 
 # ตั้งค่า LINE SDK - สร้างเมื่อต้องใช้
@@ -133,11 +133,30 @@ async def line_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                 print(f"Processing event type: {event_type}")
                 
                 if isinstance(event, MessageEvent):
-                    # Use the new comprehensive message handler for ALL message types
-                    success = await process_line_message(event, db, line_bot_api)
-                    if success:
+                    # Use the enhanced message handler for different message types
+                    try:
+                        if isinstance(event.message, TextMessageContent):
+                            await handle_message_enhanced(event, db, line_bot_api)
+                        elif isinstance(event.message, ImageMessageContent):
+                            await handle_image_message_enhanced(event, db, line_bot_api)
+                        elif isinstance(event.message, FileMessageContent):
+                            await handle_file_message_enhanced(event, db, line_bot_api)
+                        else:
+                            # Handle other message types with text handler as fallback
+                            await handle_message_enhanced(event, db, line_bot_api)
+                        
                         processed_events += 1
-                    else:
+                    except Exception as e:
+                        print(f"Error processing message event: {e}")
+                        await log_system_event(
+                            db=db,
+                            level="error",
+                            category="line_webhook",
+                            subcategory="message_handler_error",
+                            message=f"Message handler error: {str(e)}",
+                            details={"event_type": type(event.message).__name__},
+                            request_id=request_id
+                        )
                         failed_events += 1
                     
                 elif isinstance(event, FollowEvent):

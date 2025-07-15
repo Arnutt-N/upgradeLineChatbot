@@ -58,14 +58,22 @@ async def get_all_chat_history_by_user(
     (ฟังก์ชันใหม่ - แทนที่ get_chat_history)
     ดึงประวัติแชททั้งหมดของผู้ใช้คนเดียว เรียงจากเก่าไปใหม่สำหรับแสดงผลในห้องแชท
     """
-    query = select(ChatHistory).where(
-        ChatHistory.user_id == user_id
-    ).order_by(
-        ChatHistory.timestamp.asc()  # <-- แก้ไข: เรียงจากเก่าไปใหม่
-    ).limit(limit).offset(offset)
-    
-    result = await db.execute(query)
-    return result.scalars().all()
+    try:
+        query = select(ChatHistory).where(
+            ChatHistory.user_id == user_id
+        ).order_by(
+            ChatHistory.timestamp.asc()  # <-- แก้ไข: เรียงจากเก่าไปใหม่
+        ).limit(limit).offset(offset)
+        
+        result = await db.execute(query)
+        messages = result.scalars().all()
+        
+        print(f"Retrieved {len(messages)} messages for user {user_id}")
+        return messages
+        
+    except Exception as e:
+        print(f"Error retrieving chat history for user {user_id}: {e}")
+        return []
 
 async def get_users_with_history(db: AsyncSession) -> List[UserStatus]:
     """

@@ -36,7 +36,7 @@ class GeminiService:
     def __init__(self):
         """Initialize Gemini service with API configuration"""
         self.api_key = os.environ.get("GEMINI_API_KEY") or getattr(settings, 'GEMINI_API_KEY', None)
-        self.model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-2.0-flash')
+        self.model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-2.5-flash')
         self.temperature = getattr(settings, 'GEMINI_TEMPERATURE', 0.7)
         self.max_tokens = getattr(settings, 'GEMINI_MAX_TOKENS', 1000)
         self.enable_safety = getattr(settings, 'GEMINI_ENABLE_SAFETY', True)
@@ -219,7 +219,9 @@ class GeminiService:
             )
             
             if response and response.text:
-                return response.text.strip()
+                # Ensure proper UTF-8 encoding
+                text = response.text.strip()
+                return text.encode('utf-8').decode('utf-8')
             return None
             
         except Exception as e:
@@ -367,7 +369,7 @@ class GeminiService:
                     user_id=user_id,
                     message_type="ai_response",
                     message_content=ai_result["response"],
-                    metadata={
+                    extra_data={
                         "ai_model": ai_result.get("model"),
                         "ai_usage": ai_result.get("usage"),
                         "user_message": user_message[:100] + "..." if len(user_message) > 100 else user_message
@@ -411,9 +413,12 @@ class GeminiService:
             )
             
             if response and response.text:
+                # Ensure proper UTF-8 encoding
+                text = response.text.strip()
+                clean_text = text.encode('utf-8').decode('utf-8')
                 return {
                     "success": True,
-                    "response": response.text.strip(),
+                    "response": clean_text,
                     "model": self.model_name,
                     "type": "image_analysis"
                 }
@@ -482,9 +487,12 @@ class GeminiService:
                 os_module.unlink(temp_file_path)
             
             if response and response.text:
+                # Ensure proper UTF-8 encoding
+                text = response.text.strip()
+                clean_text = text.encode('utf-8').decode('utf-8')
                 return {
                     "success": True,
-                    "response": response.text.strip(),
+                    "response": clean_text,
                     "model": self.model_name,
                     "type": "document_analysis"
                 }
@@ -637,7 +645,9 @@ def generate_text(text: str) -> str:
         response = gemini_service.model.generate_content(text)
         
         if response and response.text:
-            return response.text.strip()
+            # Ensure proper UTF-8 encoding
+            text = response.text.strip()
+            return text.encode('utf-8').decode('utf-8')
         else:
             return "ขออภัย ไม่สามารถประมวลผลคำขอได้ในขณะนี้"
         

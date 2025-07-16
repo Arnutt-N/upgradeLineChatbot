@@ -26,6 +26,9 @@ from app.utils.timezone import get_thai_time
 # --- Gemini AI Integration ---
 from app.services.gemini_service import get_ai_response, check_gemini_availability, image_understanding, document_understanding
 
+# Import AsyncMessagingApiBlob for handling multimedia content
+from linebot.v3.messaging import AsyncMessagingApiBlob
+
 # ========================================
 # Enhanced User Profile Functions
 # ========================================
@@ -239,6 +242,202 @@ async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str, 
         print(f"User ID: {user_id}, Seconds: {seconds}")
         return False
 
+async def handle_image_message_enhanced(line_bot_api: AsyncMessagingApi, line_bot_blob_api: AsyncMessagingApiBlob, event: MessageEvent, db: AsyncSession):
+    """
+    Enhanced image message handler with Gemini AI analysis (based on jetpack reference)
+    """
+    user_id = event.source.user_id
+    message_id = event.message.id
+    
+    try:
+        # Show loading animation
+        await show_loading_animation(line_bot_api, user_id, seconds=5)
+        
+        # Get user profile
+        user_profile = await get_user_profile_enhanced(line_bot_api, user_id)
+        
+        # Get binary content of image from LINE server
+        image_content = await line_bot_blob_api.get_message_content(message_id=message_id)
+        
+        # Save message to history first
+        await save_chat_to_history(
+            db=db,
+            user_id=user_id,
+            message_type="user_image",
+            message_content=f"[รูปภาพ] - Message ID: {message_id}",
+            extra_data={"message_id": message_id, "content_type": "image"}
+        )
+        
+        # Analyze image using Gemini AI
+        gemini_response = await image_understanding(
+            image_content=image_content,
+            prompt="วิเคราะห์รูปภาพนี้เป็นภาษาไทย บอกรายละเอียดที่เห็นในภาพ และถ้าเป็นเอกสารหรือข้อความ ให้อ่านออกมาด้วยนะคะ"
+        )
+        
+        print(f"Gemini image analysis: {gemini_response}")
+        
+        # Save AI response to history
+        await save_chat_to_history(
+            db=db,
+            user_id=user_id,
+            message_type="ai_response",
+            message_content=gemini_response,
+            extra_data={"content_type": "image_analysis", "original_message_id": message_id}
+        )
+        
+        # Reply with analysis result
+        reply_message = TextMessage(text=gemini_response)
+        await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[reply_message]
+            )
+        )
+        
+        # Broadcast to admin interface
+        await manager.broadcast({
+            "type": "new_message",
+            "userId": user_id,
+            "message": f"[รูปภาพ] {gemini_response[:50]}...",
+            "senderType": "user",
+            "timestamp": get_thai_time().isoformat()
+        })
+        
+        # Log system event
+        await log_system_event(
+            db=db,
+            level="info",
+            category="line_handler",
+            subcategory="image_analysis",
+            message=f"Image analyzed for user {user_id}",
+            details={"response_length": len(gemini_response), "message_id": message_id}
+        )
+        
+    except Exception as e:
+        print(f"Error handling image message: {e}")
+        
+        # Save error to history
+        await save_chat_to_history(
+            db=db,
+            user_id=user_id,
+            message_type="system_error",
+            message_content=f"เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ: {str(e)[:100]}",
+            extra_data={"error": str(e), "message_id": message_id}
+        )
+        
+        # Send error message to user
+        error_message = "ขออภัยค่ะ เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่เมี๊ยว~"
+        await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=error_message)]
+            )
+        )
+
+async def handle_file_message_enhanced(line_bot_api: AsyncMessagingApi, line_bot_blob_api: AsyncMessagingApiBlob, event: MessageEvent, db: AsyncSession):
+    """
+    Enhanced file message handler with Gemini AI document analysis (based on jetpack reference)
+    """
+    user_id = event.source.user_id
+    message_id = event.message.id
+    file_name = getattr(event.message, 'file_name', 'unknown_file')
+    
+    try:
+        # Show loading animation for longer processing
+        await show_loading_animation(line_bot_api, user_id, seconds=10)
+        
+        # Get user profile
+        user_profile = await get_user_profile_enhanced(line_bot_api, user_id)
+        
+        # Check if it's a PDF file
+        if not file_name.lower().endswith('.pdf'):
+            error_message = "ขออภัยค่ะ ตอนนี้รองรับเฉพาะไฟล์ PDF เท่านั้นเมี๊ยว~ กรุณาส่งไฟล์ PDF มาใหม่นะคะ"
+            await line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=error_message)]
+                )
+            )
+            return
+        
+        # Get binary content of document from LINE server
+        doc_content = await line_bot_blob_api.get_message_content(message_id=message_id)
+        
+        # Save message to history first
+        await save_chat_to_history(
+            db=db,
+            user_id=user_id,
+            message_type="user_document",
+            message_content=f"[เอกสาร PDF] {file_name}",
+            extra_data={"message_id": message_id, "file_name": file_name, "content_type": "pdf"}
+        )
+        
+        # Analyze document using Gemini AI
+        gemini_response = await document_understanding(
+            document_content=doc_content,
+            prompt="สรุปเนื้อหาของเอกสาร PDF นี้เป็นภาษาไทย โดยเน้นประเด็นสำคัญและข้อมูลที่เป็นประโยชน์"
+        )
+        
+        print(f"Gemini document analysis: {gemini_response}")
+        
+        # Save AI response to history
+        await save_chat_to_history(
+            db=db,
+            user_id=user_id,
+            message_type="ai_response",
+            message_content=gemini_response,
+            extra_data={"content_type": "document_analysis", "original_message_id": message_id, "file_name": file_name}
+        )
+        
+        # Reply with analysis result
+        reply_message = TextMessage(text=f"📄 สรุปเอกสาร: {file_name}\n\n{gemini_response}")
+        await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[reply_message]
+            )
+        )
+        
+        # Broadcast to admin interface
+        await manager.broadcast({
+            "type": "new_message",
+            "userId": user_id,
+            "message": f"[เอกสาร PDF] {file_name}: {gemini_response[:50]}...",
+            "senderType": "user",
+            "timestamp": get_thai_time().isoformat()
+        })
+        
+        # Log system event
+        await log_system_event(
+            db=db,
+            level="info",
+            category="line_handler",
+            subcategory="document_analysis",
+            message=f"Document analyzed for user {user_id}: {file_name}",
+            details={"response_length": len(gemini_response), "message_id": message_id, "file_name": file_name}
+        )
+        
+    except Exception as e:
+        print(f"Error handling file message: {e}")
+        
+        # Save error to history
+        await save_chat_to_history(
+            db=db,
+            user_id=user_id,
+            message_type="system_error",
+            message_content=f"เกิดข้อผิดพลาดในการวิเคราะห์เอกสาร: {str(e)[:100]}",
+            extra_data={"error": str(e), "message_id": message_id, "file_name": file_name}
+        )
+        
+        # Send error message to user
+        error_message = "ขออภัยค่ะ เกิดข้อผิดพลาดในการวิเคราะห์เอกสาร กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่เมี๊ยว~"
+        await line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=error_message)]
+            )
+        )
+
 async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
     """จัดการข้อความ - Enhanced version with comprehensive tracking"""
     user_id = event.source.user_id
@@ -261,7 +460,11 @@ async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bo
     # บันทึกใน chat_messages เดิมด้วย (เพื่อ backward compatibility)
     await save_chat_message(db, user_id, 'user', message_text)
     
-    # Broadcast new message to admin panel via WebSocket
+    user_status = await get_or_create_user_status(
+        db, user_id, profile_data['display_name'], profile_data['picture_url']
+    )
+    
+    # Broadcast new message to admin panel via WebSocket - only once
     await manager.broadcast({
         "type": "new_message",
         "userId": user_id,
@@ -269,12 +472,9 @@ async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bo
         "displayName": profile_data['display_name'],
         "pictureUrl": profile_data['picture_url'],
         "sessionId": session_id,
-        "timestamp": thai_time.isoformat()
+        "timestamp": thai_time.isoformat(),
+        "senderType": "user"
     })
-    
-    user_status = await get_or_create_user_status(
-        db, user_id, profile_data['display_name'], profile_data['picture_url']
-    )
     
     if user_status.is_in_live_chat:
         await handle_live_chat_message(
@@ -295,12 +495,6 @@ async def handle_live_chat_message(
     """จัดการข้อความในโหมด Live Chat"""
     # Use Thai timezone
     thai_time = get_thai_time()
-    
-    await manager.broadcast({
-        "type": "new_message", "userId": user_id, "message": message_text,
-        "displayName": profile_data['display_name'], "pictureUrl": profile_data['picture_url'],
-        "sessionId": session_id, "timestamp": thai_time.isoformat()
-    })
     
     # Handle auto mode with AI response
     if user_status.chat_mode == 'auto':
@@ -380,9 +574,18 @@ async def handle_live_chat_message(
         await save_chat_message(db, user_id, message_type, bot_response)
         
         try:
-            reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=bot_response)])
-            await line_bot_api.reply_message(reply_request)
+            # Ensure bot_response is clean and not empty
+            if bot_response and bot_response.strip():
+                reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=bot_response)])
+                await line_bot_api.reply_message(reply_request)
+                print(f"Reply sent successfully to user {user_id}")
+            else:
+                print(f"Empty bot response for user {user_id}")
+                bot_response = "ขออภัย เกิดข้อผิดพลาดในการสร้างคำตอบ"
+                reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=bot_response)])
+                await line_bot_api.reply_message(reply_request)
         except Exception as e:
+            print(f"Failed to send reply to user {user_id}: {e}")
             await log_system_event(
                 db=db, level="error", category="line_webhook", subcategory="reply_failed",
                 message=f"Failed to send auto reply: {str(e)}", user_id=user_id
@@ -508,9 +711,18 @@ async def handle_bot_mode_message(
         await save_chat_message(db, user_id, message_type, response_text)
         
         try:
-            reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=response_text)])
-            await line_bot_api.reply_message(reply_request)
+            # Ensure response_text is clean and not empty
+            if response_text and response_text.strip():
+                reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=response_text)])
+                await line_bot_api.reply_message(reply_request)
+                print(f"Bot reply sent successfully to user {user_id}")
+            else:
+                print(f"Empty response_text for user {user_id}")
+                response_text = "ขออภัย เกิดข้อผิดพลาดในการสร้างคำตอบ"
+                reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=response_text)])
+                await line_bot_api.reply_message(reply_request)
         except Exception as e:
+            print(f"Failed to send bot reply to user {user_id}: {e}")
             await log_system_event(
                 db=db, level="error", category="line_webhook", subcategory="bot_reply_failed",
                 message=f"Failed to send bot reply: {str(e)}", user_id=user_id
@@ -626,185 +838,6 @@ async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession, line_bot
         "timestamp": thai_time.isoformat()
     })
 
-# ========================================
-# Image and File Message Handlers
-# ========================================
-
-async def handle_image_message_enhanced(event: MessageEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
-    """จัดการข้อความที่เป็นรูปภาพ"""
-    user_id = event.source.user_id
-    reply_token = event.reply_token
-    message_id = event.message.id
-    
-    # Show loading animation
-    try:
-        # Loading animation disabled for compatibility
-        pass
-    except Exception:
-        pass  # Loading animation might not be available in all plans
-    
-    # Get user profile
-    profile_data = await get_user_profile_enhanced(line_bot_api, user_id)
-    await get_or_create_user_status(db, user_id, profile_data['display_name'], profile_data['picture_url'])
-    
-    # Log image message
-    await save_chat_to_history(
-        db=db, user_id=user_id, message_type='user_image', 
-        message_content=f"ส่งรูปภาพ (Message ID: {message_id})",
-        session_id=f"img_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-        extra_data={"message_id": message_id, "content_type": "image"}
-    )
-    await save_chat_message(db, user_id, 'user', f"[รูปภาพ] ID: {message_id}")
-    
-    try:
-        # Create blob API client for downloading content
-        from linebot.v3.messaging import AsyncApiClient, Configuration
-        configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
-        async_api_client = AsyncApiClient(configuration)
-        line_bot_blob_api = AsyncMessagingApiBlob(async_api_client)
-        
-        # Download image content
-        message_content = await line_bot_blob_api.get_message_content(message_id=message_id)
-        
-        # Analyze image with Gemini
-        gemini_response = await image_understanding(message_content)
-        
-        # Reply with analysis
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=reply_token,
-                messages=[TextMessage(text=gemini_response)]
-            )
-        )
-        
-        # Log AI response
-        await save_chat_to_history(
-            db=db, user_id=user_id, message_type='ai_image_analysis', 
-            message_content=gemini_response,
-            session_id=f"img_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            extra_data={"message_id": message_id, "ai_powered": True}
-        )
-        await save_chat_message(db, user_id, 'ai_bot', gemini_response)
-        
-        # Notify admin about image
-        await send_telegram_notification_enhanced(
-            db=db, notification_type="image_received", title="📸 รูปภาพใหม่",
-            message=f"ผู้ใช้: {profile_data['display_name']}\nการวิเคราะห์: {gemini_response[:100]}...",
-            user_id=user_id, priority=2,
-            data={"message_id": message_id, "analysis": gemini_response}
-        )
-        
-    except Exception as e:
-        error_message = "ขออภัย ไม่สามารถวิเคราะห์รูปภาพได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"
-        
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=reply_token,
-                messages=[TextMessage(text=error_message)]
-            )
-        )
-        
-        await log_system_event(
-            db=db, level="error", category="gemini", subcategory="image_analysis_failed",
-            message=f"Failed to analyze image: {str(e)}", user_id=user_id
-        )
-
-async def handle_file_message_enhanced(event: MessageEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
-    """จัดการข้อความที่เป็นไฟล์เอกสาร"""
-    user_id = event.source.user_id
-    reply_token = event.reply_token
-    message_id = event.message.id
-    file_name = getattr(event.message, 'file_name', 'unknown_file')
-    file_size = getattr(event.message, 'file_size', 0)
-    
-    # Show loading animation
-    try:
-        # Loading animation disabled for compatibility
-        pass
-    except Exception:
-        pass
-    
-    # Get user profile
-    profile_data = await get_user_profile_enhanced(line_bot_api, user_id)
-    await get_or_create_user_status(db, user_id, profile_data['display_name'], profile_data['picture_url'])
-    
-    # Log file message
-    await save_chat_to_history(
-        db=db, user_id=user_id, message_type='user_file', 
-        message_content=f"ส่งไฟล์: {file_name} ({file_size} bytes)",
-        session_id=f"file_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-        extra_data={"message_id": message_id, "file_name": file_name, "file_size": file_size}
-    )
-    await save_chat_message(db, user_id, 'user', f"[ไฟล์] {file_name}")
-    
-    try:
-        # Check file size limit (10MB)
-        if file_size > 10 * 1024 * 1024:
-            error_message = "ขออภัย ไฟล์มีขนาดใหญ่เกินไป (เกิน 10MB) กรุณาส่งไฟล์ที่มีขนาดเล็กกว่า"
-            await line_bot_api.reply_message(
-                ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=error_message)])
-            )
-            return
-        
-        # Check if it's a PDF file
-        if not file_name.lower().endswith('.pdf'):
-            error_message = "ขออภัย ระบบรองรับเฉพาะไฟล์ PDF เท่านั้น กรุณาส่งไฟล์ในรูปแบบ PDF"
-            await line_bot_api.reply_message(
-                ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=error_message)])
-            )
-            return
-        
-        # Create blob API client for downloading content
-        from linebot.v3.messaging import AsyncApiClient, Configuration
-        configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
-        async_api_client = AsyncApiClient(configuration)
-        line_bot_blob_api = AsyncMessagingApiBlob(async_api_client)
-        
-        # Download file content
-        file_content = await line_bot_blob_api.get_message_content(message_id=message_id)
-        
-        # Analyze document with Gemini
-        gemini_response = await document_understanding(file_content)
-        
-        # Reply with analysis
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=reply_token,
-                messages=[TextMessage(text=gemini_response)]
-            )
-        )
-        
-        # Log AI response
-        await save_chat_to_history(
-            db=db, user_id=user_id, message_type='ai_document_analysis', 
-            message_content=gemini_response,
-            session_id=f"file_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            extra_data={"message_id": message_id, "file_name": file_name, "ai_powered": True}
-        )
-        await save_chat_message(db, user_id, 'ai_bot', gemini_response)
-        
-        # Notify admin about document
-        await send_telegram_notification_enhanced(
-            db=db, notification_type="document_received", title="📄 เอกสารใหม่",
-            message=f"ผู้ใช้: {profile_data['display_name']}\nไฟล์: {file_name}\nการวิเคราะห์: {gemini_response[:100]}...",
-            user_id=user_id, priority=2,
-            data={"message_id": message_id, "file_name": file_name, "analysis": gemini_response}
-        )
-        
-    except Exception as e:
-        error_message = "ขออภัย ไม่สามารถวิเคราะห์เอกสารได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"
-        
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=reply_token,
-                messages=[TextMessage(text=error_message)]
-            )
-        )
-        
-        await log_system_event(
-            db=db, level="error", category="gemini", subcategory="document_analysis_failed",
-            message=f"Failed to analyze document: {str(e)}", user_id=user_id
-        )
 
 # Export handlers
 __all__ = [

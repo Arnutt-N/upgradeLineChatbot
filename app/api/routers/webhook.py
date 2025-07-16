@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from linebot.v3.webhook import WebhookParser
-from linebot.v3.messaging import AsyncApiClient, AsyncMessagingApi, Configuration
+from linebot.v3.messaging import AsyncApiClient, AsyncMessagingApi, AsyncMessagingApiBlob, Configuration
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import (
     MessageEvent, TextMessageContent, ImageMessageContent, FileMessageContent,
@@ -25,6 +25,12 @@ def get_line_bot_api():
     configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
     async_api_client = AsyncApiClient(configuration)
     return AsyncMessagingApi(async_api_client)
+
+def get_line_bot_blob_api():
+    """สร้าง LINE Bot Blob API client สำหรับ multimedia content"""
+    configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
+    async_api_client = AsyncApiClient(configuration)
+    return AsyncMessagingApiBlob(async_api_client)
 
 router = APIRouter()
 
@@ -122,6 +128,7 @@ async def line_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             return {"status": "error", "message": f"Parse error: {e}"}
         
         line_bot_api = get_line_bot_api()
+        line_bot_blob_api = get_line_bot_blob_api()
         
         # Process events
         processed_events = 0
@@ -138,9 +145,9 @@ async def line_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                         if isinstance(event.message, TextMessageContent):
                             await handle_message_enhanced(event, db, line_bot_api)
                         elif isinstance(event.message, ImageMessageContent):
-                            await handle_image_message_enhanced(event, db, line_bot_api)
+                            await handle_image_message_enhanced(line_bot_api, line_bot_blob_api, event, db)
                         elif isinstance(event.message, FileMessageContent):
-                            await handle_file_message_enhanced(event, db, line_bot_api)
+                            await handle_file_message_enhanced(line_bot_api, line_bot_blob_api, event, db)
                         else:
                             # Handle other message types with text handler as fallback
                             await handle_message_enhanced(event, db, line_bot_api)

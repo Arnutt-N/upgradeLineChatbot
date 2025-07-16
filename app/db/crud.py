@@ -18,7 +18,7 @@ async def get_or_create_user_status(db: AsyncSession, user_id: str, display_name
             display_name=display_name or fallback_name,
             picture_url=picture_url,
             is_in_live_chat=False, 
-            chat_mode='manual'
+            chat_mode='auto'  # Default to auto for better user experience
         )
         db.add(user_status)
         await db.commit()

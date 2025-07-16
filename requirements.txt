@@ -1,7 +1,6 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 gunicorn==21.2.0
-line-bot-sdk==3.17.1
 httpx==0.25.2
 python-dotenv==1.0.0
 sqlalchemy[asyncio]==2.0.23
@@ -14,3 +13,7 @@ openpyxl==3.1.2
 google-generativeai==0.3.2
 google-ai-generativelanguage==0.4.0
 pytz==2023.3
+line-bot-sdk>=3.16.3
+functions-framework
+google-genai
+setuptools<81

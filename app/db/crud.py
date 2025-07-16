@@ -1,8 +1,12 @@
 # app/db/crud.py
+import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
-from app.db.models import UserStatus, ChatMessage
+if os.getenv("ENVIRONMENT") == "production":
+    from app.db.postgresql.models_postgres import UserStatus, ChatMessage
+else:
+    from app.db.models import UserStatus, ChatMessage
 import uuid
 
 async def get_or_create_user_status(db: AsyncSession, user_id: str, display_name: str = None, picture_url: str = None) -> UserStatus:

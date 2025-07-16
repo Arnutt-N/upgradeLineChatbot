@@ -17,3 +17,5 @@ line-bot-sdk>=3.16.3
 functions-framework
 google-genai
 setuptools<81
+asyncpg==0.29.0
+psycopg2-binary==2.9.9

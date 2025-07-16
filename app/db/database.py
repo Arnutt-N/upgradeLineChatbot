@@ -5,9 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from app.core.config import settings
-from app.db.models import Base
 
-# สร้างโฟลเดอร์สำหรับ database ถ้ายังไม่มี
+# Import the proper database configuration based on environment
+if os.getenv("ENVIRONMENT") == "production":
+    from app.db.postgresql.database_config import engine as configured_engine, get_db as configured_get_db
+    from app.db.postgresql.models_postgres import Base
+else:
+    from app.db.postgresql.database_config import engine as configured_engine, get_db as configured_get_db
+    from app.db.models import Base
+
+# สร้างโฟลเดอร์สำหรับ database ถ้ายังไม่มี (สำหรับ SQLite)
 def ensure_database_directory():
     """สร้างโฟลเดอร์สำหรับ database"""
     if settings.DATABASE_URL.startswith('sqlite'):
@@ -22,14 +29,10 @@ def ensure_database_directory():
 # เรียกใช้ฟังก์ชันสร้างโฟลเดอร์
 ensure_database_directory()
 
-# สร้าง async engine
-async_engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=False,  # Disable SQL logging to prevent startup hanging
-    future=True
-)
+# ใช้ configured engine จาก database_config.py
+async_engine = configured_engine
 
-# สร้าง async session
+# สร้าง async session (ใช้จากการกำหนดค่าที่ถูกต้อง)
 AsyncSessionLocal = sessionmaker(
     async_engine,
     class_=AsyncSession,
@@ -79,5 +82,6 @@ async def ensure_db_initialized():
 async def get_db():
     """Dependency สำหรับรับ database session"""
     await ensure_db_initialized()
-    async with AsyncSessionLocal() as session:
+    # ใช้ configured get_db function
+    async for session in configured_get_db():
         yield session

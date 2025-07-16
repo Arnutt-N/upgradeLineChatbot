@@ -1749,6 +1749,7 @@
         let currentView = 'chat';
         let currentTheme = 'light';
         let currentMode = 'bot';
+        let displayedMessages = new Set(); // Track displayed message IDs to prevent duplicates
 
         // Sample user data
         const sampleUsers = new Map([
@@ -2044,10 +2045,17 @@
                 console.log('🤖 Processing bot auto reply:', {
                     userId: data.userId,
                     currentUserId: currentUserId,
-                    message: data.message
+                    message: data.message,
+                    messageId: data.messageId
                 });
                 
                 if (currentUserId === data.userId) {
+                    // Check for duplicate messages using messageId
+                    if (data.messageId && displayedMessages.has(data.messageId)) {
+                        console.log('🔄 DUPLICATE MESSAGE DETECTED - Skipping:', data.messageId);
+                        return;
+                    }
+                    
                     console.log('🤖 MATCH! Displaying bot reply for current user:', data.message);
                     
                     // Hide typing indicator before showing bot response
@@ -2058,6 +2066,11 @@
                         'bot', 
                         data.timestamp || new Date().toISOString()
                     );
+                    
+                    // Track this message as displayed
+                    if (data.messageId) {
+                        displayedMessages.add(data.messageId);
+                    }
                 }
                 
             } else if (data.type === 'bot_typing_start') {
@@ -2532,6 +2545,9 @@
             currentUserId = userId;
             const user = users.get(userId);
             if (!user) return;
+            
+            // Clear displayed messages tracking when switching users
+            displayedMessages.clear();
 
             // Update UI
             document.querySelectorAll('.user-item').forEach(item => {
@@ -2568,6 +2584,9 @@
         // Load messages from database
         async function loadMessagesFromDatabase(userId) {
             console.log('📥 Loading messages for user:', userId);
+            
+            // Clear displayed messages tracking when loading from database
+            displayedMessages.clear();
             
             // Show loading indicator
             const messagesList = document.getElementById('messagesList');

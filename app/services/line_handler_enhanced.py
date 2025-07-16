@@ -591,16 +591,21 @@ async def handle_live_chat_message(
                 message=f"Failed to send auto reply: {str(e)}", user_id=user_id
             )
         
-        # Stop typing indicator and broadcast response
+        # Stop typing indicator
         await manager.broadcast({
             "type": "bot_typing_stop",
             "userId": user_id,
             "timestamp": thai_time.isoformat()
         })
         
+        # Broadcast bot response with unique identifier to prevent duplication
         await manager.broadcast({
-            "type": "bot_auto_reply", "userId": user_id, "message": bot_response, "sessionId": session_id,
-            "timestamp": thai_time.isoformat()
+            "type": "bot_auto_reply",
+            "userId": user_id,
+            "message": bot_response,
+            "sessionId": session_id,
+            "timestamp": thai_time.isoformat(),
+            "messageId": f"bot_{user_id}_{int(thai_time.timestamp() * 1000)}"  # Unique ID
         })
 
 async def handle_bot_mode_message(
@@ -733,6 +738,16 @@ async def handle_bot_mode_message(
             "type": "bot_typing_stop",
             "userId": user_id,
             "timestamp": thai_time.isoformat()
+        })
+        
+        # Broadcast bot response with unique identifier to prevent duplication
+        await manager.broadcast({
+            "type": "bot_auto_reply",
+            "userId": user_id,
+            "message": response_text,
+            "sessionId": session_id,
+            "timestamp": thai_time.isoformat(),
+            "messageId": f"bot_{user_id}_{int(thai_time.timestamp() * 1000)}"  # Unique ID
         })
 
 # ========================================

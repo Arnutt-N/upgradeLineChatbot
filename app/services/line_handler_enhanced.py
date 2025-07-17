@@ -326,7 +326,7 @@ async def handle_image_message_enhanced(line_bot_api: AsyncMessagingApi, line_bo
         )
         
         # Send error message to user
-        error_message = "ขออภัยค่ะ เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่เมี๊ยว~"
+        error_message = "ขออภัยค่ะ เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่จ้า"
         await line_bot_api.reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
@@ -351,7 +351,7 @@ async def handle_file_message_enhanced(line_bot_api: AsyncMessagingApi, line_bot
         
         # Check if it's a PDF file
         if not file_name.lower().endswith('.pdf'):
-            error_message = "ขออภัยค่ะ ตอนนี้รองรับเฉพาะไฟล์ PDF เท่านั้นเมี๊ยว~ กรุณาส่งไฟล์ PDF มาใหม่นะคะ"
+            error_message = "ขออภัยค่ะ ตอนนี้รองรับเฉพาะไฟล์ PDF เท่านั้นจ้า กรุณาส่งไฟล์ PDF มาใหม่นะคะ"
             await line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
@@ -430,7 +430,7 @@ async def handle_file_message_enhanced(line_bot_api: AsyncMessagingApi, line_bot
         )
         
         # Send error message to user
-        error_message = "ขออภัยค่ะ เกิดข้อผิดพลาดในการวิเคราะห์เอกสาร กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่เมี๊ยว~"
+        error_message = "ขออภัยค่ะ เกิดข้อผิดพลาดในการวิเคราะห์เอกสาร กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่จ้า"
         await line_bot_api.reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,

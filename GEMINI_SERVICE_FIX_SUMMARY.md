@@ -11,7 +11,7 @@ Successfully upgraded and enhanced the Gemini AI integration in the LINE Bot cha
 - ✅ **Conversation Sessions**: Manual session management for conversation continuity across user interactions
 - ✅ **Multimedia Support**: Image analysis and PDF document understanding capabilities
 - ✅ **Enhanced Error Handling**: Robust safety filter detection and appropriate Thai fallback messages
-- ✅ **Thai Language Persona**: Cute female government service assistant ("เนโกะ") with proper linguistic patterns
+- ✅ **Thai Language Persona**: Cute female government service assistant ("Agent น้อง HR Moj") with proper linguistic patterns
 
 ### 2. **Core Features Implemented**
 

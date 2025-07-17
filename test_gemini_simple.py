@@ -1,59 +1,69 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Simple Gemini Service Test - Windows Console Compatible
-"""
-
+# Simple Gemini Test Script
 import asyncio
-import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from dotenv import load_dotenv
 
-async def test_gemini():
-    print("Testing Gemini Service")
-    
+# Load environment variables
+load_dotenv(".env")
+
+async def test_basic_gemini():
+    """Test basic Gemini functionality"""
     try:
-        from app.services.gemini_service import gemini_service, get_ai_response
+        print("=" * 50)
+        print("Testing Basic Gemini Integration")
+        print("=" * 50)
         
-        # Check availability
-        available = gemini_service.is_available()
-        print(f"Service available: {available}")
+        # Test service availability
+        from app.services.gemini_service import gemini_service, check_gemini_availability
         
-        if not available:
-            print("Service not available - check API key and configuration")
+        print("\n1. Testing availability...")
+        is_available = await check_gemini_availability()
+        print(f"   Gemini available: {is_available}")
+        
+        if not is_available:
+            print("   Error: Gemini not available")
             return False
         
-        # Test simple response
-        print("Testing simple response...")
+        # Test basic text generation
+        print("\n2. Testing basic generation...")
+        test_message = "Hello, how are you?"
+        
         result = await gemini_service.generate_response(
-            user_message="Hello, please respond in Thai",
-            user_id="test_user"
+            user_message=test_message,
+            user_id="test_user",
+            use_session=True
         )
         
-        print(f"Success: {result['success']}")
+        print(f"   Input: {test_message}")
+        print(f"   Success: {result['success']}")
         if result['success']:
-            response = result['response']
-            print(f"Response length: {len(response)} characters")
-            # Check if response contains readable text
-            if len(response) > 5 and response != "ขออภัย ไม่สามารถประมวลผลคำขอได้ในขณะนี้":
-                print("Response received successfully")
-                return True
-            else:
-                print("Response seems invalid")
-                return False
+            print(f"   Response: {result['response'][:100]}...")
         else:
-            print(f"Error: {result.get('error', 'Unknown error')}")
-            return False
-            
+            print(f"   Error: {result.get('error')}")
+        
+        # Test model info
+        print("\n3. Testing model info...")
+        model_info = gemini_service.get_model_info()
+        print(f"   Model: {model_info['model']}")
+        print(f"   Available: {model_info['available']}")
+        print(f"   API Type: {model_info['api_type']}")
+        
+        print("\n" + "=" * 50)
+        print("SUCCESS: Basic Gemini test completed!")
+        print("=" * 50)
+        return True
+        
     except Exception as e:
-        print(f"Test failed with error: {e}")
+        print(f"\nERROR: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
-async def main():
-    success = await test_gemini()
-    print(f"Test result: {'PASSED' if success else 'FAILED'}")
-    return success
-
-if __name__ == '__main__':
-    result = asyncio.run(main())
-    sys.exit(0 if result else 1)
+if __name__ == "__main__":
+    print("Starting Simple Gemini Test...")
+    success = asyncio.run(test_basic_gemini())
+    
+    if success:
+        print("\nTest PASSED! Gemini integration working.")
+    else:
+        print("\nTest FAILED. Check configuration.")

@@ -208,3 +208,5 @@ ai-agent-jetpack/"NUL"
 ".env.backup" 
 
 .claude/
+
+db_supabase_pwd.txt

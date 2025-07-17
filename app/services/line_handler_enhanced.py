@@ -450,15 +450,22 @@ async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bo
     
     profile_data = await get_user_profile_enhanced(line_bot_api, user_id)
     
-    # บันทึกข้อความใน ChatHistory (ตารางใหม่)
-    await save_chat_to_history(
-        db=db, user_id=user_id, message_type='user', message_content=message_text,
-        message_id=message_id, reply_token=reply_token, session_id=session_id,
-        extra_data={"profile_data": profile_data, "timestamp": thai_time.isoformat()}
-    )
-    
-    # บันทึกใน chat_messages เดิมด้วย (เพื่อ backward compatibility)
-    await save_chat_message(db, user_id, 'user', message_text)
+    # บันทึกข้อความใน ChatHistory only (remove dual storage)
+    try:
+        await save_chat_to_history(
+            db=db, user_id=user_id, message_type='user', message_content=message_text,
+            message_id=message_id, reply_token=reply_token, session_id=session_id,
+            extra_data={"profile_data": profile_data, "timestamp": thai_time.isoformat()}
+        )
+        print(f"✅ User message saved to chat_history: {user_id}")
+    except Exception as e:
+        print(f"❌ Failed to save user message to chat_history: {e}")
+        # Fallback: try saving to old table
+        try:
+            await save_chat_message(db, user_id, 'user', message_text)
+            print(f"✅ User message saved to chat_messages (fallback): {user_id}")
+        except Exception as e2:
+            print(f"❌ Failed to save user message to any table: {e2}")
     
     user_status = await get_or_create_user_status(
         db, user_id, profile_data['display_name'], profile_data['picture_url']
@@ -567,11 +574,20 @@ async def handle_live_chat_message(
                 "original_message": message_text
             }
         
-        await save_chat_to_history(
-            db=db, user_id=user_id, message_type=message_type, message_content=bot_response,
-            session_id=session_id, extra_data=extra_data
-        )
-        await save_chat_message(db, user_id, message_type, bot_response)
+        try:
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type=message_type, message_content=bot_response,
+                session_id=session_id, extra_data=extra_data
+            )
+            print(f"✅ Bot response saved to chat_history: {user_id}")
+        except Exception as e:
+            print(f"❌ Failed to save bot response to chat_history: {e}")
+            # Fallback: try saving to old table
+            try:
+                await save_chat_message(db, user_id, message_type, bot_response)
+                print(f"✅ Bot response saved to chat_messages (fallback): {user_id}")
+            except Exception as e2:
+                print(f"❌ Failed to save bot response to any table: {e2}")
         
         try:
             # Ensure bot_response is clean and not empty
@@ -624,11 +640,19 @@ async def handle_bot_mode_message(
         await set_live_chat_status(db, user_id, True, profile_data['display_name'], profile_data['picture_url'])
         response_text = "รับทราบค่ะ! กำลังโอนสายไปยังเจ้าหน้าที่ให้นะคะ รอแป๊บนึงเดี๋ยวจะมีเจ้าหน้าที่มาคุยกับคุณค่ะ 💕"
         
-        await save_chat_to_history(
-            db=db, user_id=user_id, message_type='bot', message_content=response_text,
-            session_id=session_id, extra_data={"handoff_request": True, "trigger_message": message_text}
-        )
-        await save_chat_message(db, user_id, 'bot', response_text)
+        try:
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='bot', message_content=response_text,
+                session_id=session_id, extra_data={"handoff_request": True, "trigger_message": message_text}
+            )
+            print(f"✅ Handoff message saved to chat_history: {user_id}")
+        except Exception as e:
+            print(f"❌ Failed to save handoff message to chat_history: {e}")
+            try:
+                await save_chat_message(db, user_id, 'bot', response_text)
+                print(f"✅ Handoff message saved to chat_messages (fallback): {user_id}")
+            except Exception as e2:
+                print(f"❌ Failed to save handoff message to any table: {e2}")
         
         try:
             reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=response_text)])
@@ -709,11 +733,19 @@ async def handle_bot_mode_message(
             message_type = 'bot'
             extra_data = {"standard_reply": True, "ai_unavailable": True}
         
-        await save_chat_to_history(
-            db=db, user_id=user_id, message_type=message_type, message_content=response_text,
-            session_id=session_id, extra_data=extra_data
-        )
-        await save_chat_message(db, user_id, message_type, response_text)
+        try:
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type=message_type, message_content=response_text,
+                session_id=session_id, extra_data=extra_data
+            )
+            print(f"✅ Standard response saved to chat_history: {user_id}")
+        except Exception as e:
+            print(f"❌ Failed to save standard response to chat_history: {e}")
+            try:
+                await save_chat_message(db, user_id, message_type, response_text)
+                print(f"✅ Standard response saved to chat_messages (fallback): {user_id}")
+            except Exception as e2:
+                print(f"❌ Failed to save standard response to any table: {e2}")
         
         try:
             # Ensure response_text is clean and not empty

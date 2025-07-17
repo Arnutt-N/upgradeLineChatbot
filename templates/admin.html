@@ -1737,7 +1737,7 @@
 
     <script>
         let ws = null;
-        let currentUserId = 'user1';
+        let currentUserId = localStorage.getItem('lastSelectedUserId') || null;
         let users = new Map();
         let isSidebarOpen = false;
         let notificationSettings = {
@@ -1913,6 +1913,19 @@
                         });
                     }
                     updateUsersList();
+                    
+                    // Auto-select the last selected user after loading users
+                    setTimeout(async () => {
+                        if (currentUserId && users.has(currentUserId)) {
+                            console.log('🔄 Auto-selecting last selected user:', currentUserId);
+                            await selectUser(currentUserId);
+                        } else if (users.size > 0) {
+                            // If no last selected user or user doesn't exist, select the first user
+                            const firstUserId = Array.from(users.keys())[0];
+                            console.log('🔄 Auto-selecting first user:', firstUserId);
+                            await selectUser(firstUserId);
+                        }
+                    }, 500); // Wait 500ms to ensure DOM is ready
                 } else {
                     console.error('❌ Failed to load users:', response.status);
                     // Fallback to sample data for demo
@@ -1962,6 +1975,19 @@
             ]);
             users = sampleUsers;
             updateUsersList();
+            
+            // Auto-select the last selected user after loading sample data
+            setTimeout(async () => {
+                if (currentUserId && users.has(currentUserId)) {
+                    console.log('🔄 Auto-selecting last selected user from sample data:', currentUserId);
+                    await selectUser(currentUserId);
+                } else if (users.size > 0) {
+                    // If no last selected user or user doesn't exist, select the first user
+                    const firstUserId = Array.from(users.keys())[0];
+                    console.log('🔄 Auto-selecting first user from sample data:', firstUserId);
+                    await selectUser(firstUserId);
+                }
+            }, 500); // Wait 500ms to ensure DOM is ready
         }
 
         // Handle WebSocket messages with Enhanced Processing
@@ -2543,6 +2569,8 @@
 
         async function selectUser(userId) {
             currentUserId = userId;
+            // Save selected user to localStorage for persistence across page refreshes
+            localStorage.setItem('lastSelectedUserId', userId);
             const user = users.get(userId);
             if (!user) return;
             
@@ -2581,39 +2609,104 @@
             }
         }
 
+        // Simplified message loading - removed localStorage complexity
+        
+        // Function to filter duplicate messages
+        function filterDuplicateMessages(messages) {
+            const seen = new Map();
+            
+            messages.forEach(msg => {
+                // Create key from content + timestamp (within 5 seconds)
+                const timestamp = new Date(msg.created_at).getTime();
+                const timeKey = Math.floor(timestamp / 5000); // Group every 5 seconds
+                const key = `${msg.message}_${timeKey}`;
+                
+                // If not seen before or prefer this type
+                if (!seen.has(key) || shouldPreferType(msg.sender_type, seen.get(key).sender_type)) {
+                    seen.set(key, msg);
+                }
+            });
+            
+            // Convert Map back to array and sort by time
+            return Array.from(seen.values()).sort((a, b) => 
+                new Date(a.created_at) - new Date(b.created_at)
+            );
+        }
+        
+        // Determine message type priority
+        function shouldPreferType(newType, existingType) {
+            const priority = {
+                'user': 1,
+                'admin': 2,
+                'ai_bot': 3,
+                'bot': 4,
+                'ai_response': 5,
+                'system': 6
+            };
+            
+            return (priority[newType] || 999) < (priority[existingType] || 999);
+        }
+        
         // Load messages from database
         async function loadMessagesFromDatabase(userId) {
             console.log('📥 Loading messages for user:', userId);
+            
+            // Ensure we have a valid user ID
+            if (!userId) {
+                console.error('❌ No user ID provided to loadMessagesFromDatabase');
+                return;
+            }
             
             // Clear displayed messages tracking when loading from database
             displayedMessages.clear();
             
             // Show loading indicator
             const messagesList = document.getElementById('messagesList');
+            if (!messagesList) {
+                console.error('❌ messagesList element not found');
+                return;
+            }
+            
             messagesList.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">🔄 กำลังโหลดข้อความ...</div>';
             
             try {
-                const response = await fetch(`/admin/messages/${userId}?limit=100&offset=0`);
+                console.log('🌐 Fetching messages from:', `/admin/messages/${userId}?limit=500&offset=0`);
+                const response = await fetch(`/admin/messages/${userId}?limit=500&offset=0`);
+                console.log('📡 Response status:', response.status);
+                
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('📊 Raw response data:', data);
                     messagesList.innerHTML = ''; // Clear loading indicator
 
                     console.log('📊 Loaded messages:', data.messages?.length || 0, 'messages'); // Debug logging
 
                     if (data.messages && data.messages.length > 0) {
+                        // Filter duplicate messages before displaying
+                        const filteredMessages = filterDuplicateMessages(data.messages);
+                        console.log(`📋 Filtering ${data.messages.length} messages -> ${filteredMessages.length} unique messages`);
+                        
                         let messageCount = 0;
-                        data.messages.forEach(msg => {
+                        filteredMessages.forEach(msg => {
                             if (msg.message && msg.sender_type && msg.created_at) {
                                 console.log('📝 Processing message:', msg.message.substring(0, 50) + '...', 'Type:', msg.sender_type); 
-                                displayMessage(msg.message, msg.sender_type, msg.created_at);
+                                // Normalize ai_response to bot for display
+                                const displayType = msg.sender_type === 'ai_response' ? 'bot' : msg.sender_type;
+                                displayMessage(msg.message, displayType, msg.created_at);
                                 messageCount++;
                             } else {
                                 console.warn('⚠️ Skipping malformed message:', msg);
                             }
                         });
                         console.log(`✅ Successfully displayed ${messageCount} messages`);
+                        
+                        // Force scroll to bottom after messages are loaded
+                        setTimeout(() => {
+                            scrollToBottom();
+                        }, 100);
                     } else {
-                        // No messages found
+                        // No messages found in database
+                        console.log('📭 No messages found in database for user:', userId);
                         messagesList.innerHTML = `
                             <div style="text-align: center; padding: 40px; color: var(--text-muted);">
                                 <i class="fas fa-comment-slash" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
@@ -2718,6 +2811,11 @@
                 messageType: messageType,
                 currentUser: currentUserId
             });
+            
+            // Normalize sender type (ai_response -> bot)
+            if (senderType === 'ai_response') {
+                senderType = 'bot';
+            }
             
             const messagesList = document.getElementById('messagesList');
             

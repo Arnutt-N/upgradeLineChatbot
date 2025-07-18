@@ -1,12 +1,8 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -20,153 +16,41 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
+# Virtual Environment
+venv/
+env/
+ENV/
 .env
+.venv
+
+# Environment Variables (keep .env.example but not .env)
 .env.local
 .env.development
 .env.test
-.env.production
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+.env.production.local
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# Database files (keep for deployment but exclude backups)
+*.db-journal
+*_backup_*.db
+chatbot_backup_*.db
 
-# Rope project settings
-.ropeproject
+# Logs
+*.log
+logs/
 
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# Security & Backup files
-*.bak
-*.backup
-*.tmp
-*.secret
-*.key
-*.pem
-*.crt
-*.csr
-*.p12
-*.pfx
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-chatbot.db
-/data/
-/database/
-
-# Configuration files that might contain secrets
-config.ini
-config.json
-secrets.json
-.secrets
-private.json
-
-# IDE and editor files
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -175,39 +59,37 @@ private.json
 ehthumbs.db
 Thumbs.db
 
-# Deployment and CI/CD
-.fly/
-.docker/
-docker-compose.override.yml
-.github/workflows/secrets.yml
+# Test files
+test_*.py
+debug_*.py
+simple_*.py
+check_*.py
+validate_*.py
+verify_*.py
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-<<<<<<< HEAD
-"*.db" 
-=======
+# Documentation (keep main docs)
+PHASE_*.md
+FIX_*.md
+FINAL_*.md
+*_SUMMARY.md
+*_REPORT.md
+*_UPDATE.md
+*_FIXES.md
+*_COMPLETED.md
 
+# Backup files
+*.bak
+*.backup
 
-manus/
->>>>>>> feature/forms-admin-separation
+# Render/Deployment specific
+.vercel/
+*.vercel.template
 
-ai-agent-jetpack/"NUL" 
-"__pycache__/" 
-"*.pyc" 
-"*.log" 
-".env.backup" 
-
-.claude/
-
-db_supabase_pwd.txt
-.vercel
+# Cache
+.cache/

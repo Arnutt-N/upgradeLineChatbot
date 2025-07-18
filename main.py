@@ -3,6 +3,13 @@ import os
 import uvicorn
 from app.main import app
 
+# FORCE SQLite configuration for production
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./chatbot.db"
+os.environ["DB_TYPE"] = "sqlite"
+
+print("🗄️ FORCED SQLite configuration for production deployment")
+print(f"DATABASE_URL: {os.environ.get('DATABASE_URL')}")
+
 # Export app สำหรับ gunicorn
 application = app
 

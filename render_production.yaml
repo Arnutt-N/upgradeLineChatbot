@@ -1,0 +1,70 @@
+# render_production.yaml
+# Production-ready Render.com configuration for HR LINE Chatbot
+version: 1
+
+services:
+  - type: web
+    name: hr-line-chatbot
+    env: python
+    plan: free
+    region: oregon
+    runtime: python
+    pythonVersion: "3.11"
+    
+    # Build and start commands
+    buildCommand: |
+      echo "🔧 Installing dependencies..."
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      echo "🗃️ Running database migration..."
+      python migrate_to_production.py
+      echo "✅ Build completed!"
+      
+    startCommand: >
+      gunicorn app.main:app 
+      --host 0.0.0.0 
+      --port $PORT 
+      --workers 2 
+      --worker-class uvicorn.workers.UvicornWorker 
+      --timeout 120 
+      --keep-alive 5
+    
+    # Health check
+    healthCheckPath: /health
+    
+    # Environment variables for production
+    envVars:
+      # Application settings
+      - key: ENVIRONMENT
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: RELOAD
+        value: false
+      - key: DEBUG
+        value: false
+      
+      # Database configuration
+      - key: DB_TYPE
+        value: postgresql
+      - key: DATABASE_URL
+        sync: false  # Set this in Render Dashboard
+      
+      # LINE Bot credentials (set in Render Dashboard)
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      
+      # AI Service
+      - key: GEMINI_API_KEY
+        sync: false
+      
+      # Optional services
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+    
+    # Auto-deploy from Git
+    autoDeploy: true

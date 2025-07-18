@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+chatbot.db*
+chatbot_backup_*.db
+
+# Test files
+test_*.py
+*_test.py
+tests/
+debug/
+
+# Documentation
+docs/
+README.md
+*.md
+!requirements.txt
+
+# Development
+.env
+.env.*
+!.env.example
+.git/
+.github/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# Large files
+data/
+manus/
+ai-agent-jetpack/
+*.xlsx
+*.csv
+
+# Deployment configs for other platforms
+render.yaml
+Dockerfile
+docker-compose.yml
+deployment/
+vercel_deployment/
+
+# Scripts
+migrate_*.py
+create_*.py
+check_*.py
+simple_*.py
+run_*.bat

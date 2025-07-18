@@ -1,0 +1,43 @@
+# PostgreSQL requirements for the project
+# Install with: pip install -r requirements_postgres.txt
+
+# Existing requirements
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-dotenv==1.0.0
+sqlalchemy==2.0.23
+aiosqlite==0.19.0
+pydantic==2.5.2
+pydantic-settings==2.1.0
+python-multipart==0.0.6
+jinja2==3.1.2
+aiofiles==23.2.1
+websockets==12.0
+
+# LINE Bot SDK
+line-bot-sdk==3.5.1
+aiohttp==3.9.1
+
+# Google Gemini AI
+google-generativeai==0.8.3
+
+# PostgreSQL specific
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Additional utilities
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+httpx==0.25.2
+pillow==10.4.0
+
+# Timezone support
+pytz==2023.3
+tzdata==2023.3
+
+# Development tools (optional)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+flake8==6.1.0

@@ -210,3 +210,4 @@ ai-agent-jetpack/"NUL"
 .claude/
 
 db_supabase_pwd.txt
+.vercel

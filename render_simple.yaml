@@ -1,0 +1,47 @@
+# render_simple.yaml
+# Simple Render configuration for HR LINE Chatbot
+version: 1
+
+services:
+  - type: web
+    name: hr-line-chatbot-simple
+    env: python
+    plan: free
+    region: oregon
+    runtime: python
+    pythonVersion: "3.11"
+    
+    # Simple build and start
+    buildCommand: pip install -r requirements.txt && python simple_deploy_fix.py
+    startCommand: python main.py
+    
+    # Health check
+    healthCheckPath: /health
+    
+    # Environment variables
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./chatbot.db
+      - key: DB_TYPE
+        value: sqlite
+      
+      # LINE Bot credentials (set in dashboard)
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      
+      # AI Service
+      - key: GEMINI_API_KEY
+        sync: false
+      
+      # Optional services
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+    
+    # Auto-deploy
+    autoDeploy: true

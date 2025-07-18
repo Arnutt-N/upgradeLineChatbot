@@ -1,4 +1,4 @@
-# app/db/models.py
+# app/db/models.py - Fixed for production compatibility
 from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
@@ -40,7 +40,7 @@ class ChatHistory(Base):
     message_content = Column(Text, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     message_id = Column(String, nullable=True)
-    is_processed = Column(Boolean, default=True)
+    # Remove is_processed temporarily to match existing database
 
 # === Activity and Logging Models ===
 
@@ -57,7 +57,7 @@ class SystemLogs(Base):
     __tablename__ = "system_logs"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    level = Column(String, nullable=False)
+    level = Column(String, nullable=False)  # Fixed: use 'level' not 'log_level'
     message = Column(Text, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     user_id = Column(String, nullable=True)

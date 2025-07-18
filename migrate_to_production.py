@@ -1,11 +1,11 @@
 # migrate_to_production.py
 """
-Production Migration Script for Render + Supabase PostgreSQL
+Production Migration Script with Schema Update
 """
-
 import asyncio
 import os
 import sys
+import sqlite3
 from pathlib import Path
 
 # Add the app directory to Python path
@@ -21,74 +21,95 @@ except ImportError as e:
     print(f"❌ Failed to import required modules: {e}")
     sys.exit(1)
 
-async def test_database_connection(engine):
-    """Test the database connection"""
+async def update_sqlite_schema():
+    """Update SQLite schema to fix column issues"""
+    print("🔧 Updating SQLite database schema...")
+    
+    db_path = "./chatbot.db"
+    
     try:
-        async with engine.connect() as conn:
-            result = await conn.execute(text("SELECT version()"))
-            version = result.scalar()
-            print(f"✅ Connected to PostgreSQL: {version[:50]}...")
+        # Check if database exists
+        if not os.path.exists(db_path):
+            print("📦 Database doesn't exist, will be created fresh")
             return True
+            
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Check user_status table structure
+        cursor.execute("PRAGMA table_info(user_status)")
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        if 'id' not in columns:
+            print("🔄 Adding missing id column to user_status...")
+            
+            # Backup existing data
+            cursor.execute("""
+                CREATE TABLE user_status_backup AS 
+                SELECT * FROM user_status
+            """)
+            
+            # Drop and recreate with correct schema
+            cursor.execute("DROP TABLE user_status")
+            cursor.execute("""
+                CREATE TABLE user_status (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT UNIQUE NOT NULL,
+                    display_name TEXT,
+                    picture_url TEXT,
+                    is_in_live_chat BOOLEAN DEFAULT 0,
+                    chat_mode TEXT DEFAULT 'manual',
+                    user_metadata TEXT,
+                    preferences TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME
+                )
+            """)
+            
+            # Restore data
+            cursor.execute("""
+                INSERT INTO user_status (user_id, display_name, picture_url, is_in_live_chat, chat_mode, created_at, updated_at)
+                SELECT user_id, display_name, picture_url, is_in_live_chat, chat_mode, created_at, updated_at
+                FROM user_status_backup
+            """)
+            
+            # Clean up backup
+            cursor.execute("DROP TABLE user_status_backup")
+            
+            print("✅ user_status schema updated successfully")
+        
+        conn.commit()
+        conn.close()
+        return True
+        
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        print(f"❌ Schema update failed: {e}")
         return False
 
-async def create_tables(engine):
-    """Create all database tables"""
-    try:
-        async with engine.begin() as conn:
-            print("📦 Creating database tables...")
-            await conn.run_sync(Base.metadata.create_all)
-            print("✅ All tables created successfully!")
-            return True
-    except Exception as e:
-        print(f"❌ Failed to create tables: {e}")
-        return False
 async def migrate_to_production():
     """Main migration function"""
     print("🚀 Starting production database migration...")
     
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-    
-    print(f"Environment: {ENVIRONMENT}")
-    
-    if not DATABASE_URL:
-        print("❌ DATABASE_URL not found in environment variables")
+    # Step 1: Update schema first
+    if not await update_sqlite_schema():
+        print("❌ Schema update failed, stopping migration")
         return False
     
-    # Convert PostgreSQL URL for asyncpg
-    if DATABASE_URL.startswith("postgresql://"):
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-        print("🔄 Converted to asyncpg URL format")
-    
-    # Create engine with production settings
-    engine = create_async_engine(
-        DATABASE_URL,
-        echo=False,
-        pool_pre_ping=True,
-        connect_args={
-            "server_settings": {"jit": "off"},
-            "command_timeout": 60,
-        }
-    )
+    # Step 2: Create engine and tables
+    DATABASE_URL = "sqlite+aiosqlite:///./chatbot.db"
+    engine = create_async_engine(DATABASE_URL, echo=False)
     
     try:
-        # Test connection
-        print("Testing database connection...")
-        if not await test_database_connection(engine):
-            return False
-        
-        # Create tables
-        print("Creating database tables...")
-        if not await create_tables(engine):
-            return False
-        
+        async with engine.begin() as conn:
+            print("📦 Creating/updating all tables...")
+            await conn.run_sync(Base.metadata.create_all)
+            print("✅ All tables created successfully!")
+            
         print("🎉 Production migration completed successfully!")
         return True
         
     except Exception as e:
-        print(f"💥 Migration failed with error: {e}")
+        print(f"💥 Migration failed: {e}")
         return False
     finally:
         await engine.dispose()

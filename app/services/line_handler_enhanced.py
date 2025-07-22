@@ -197,6 +197,7 @@ async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bo
     
     profile_data = await get_user_profile_enhanced(line_bot_api, user_id)
     
+<<<<<<< HEAD
     # บันทึกข้อความใน ChatHistory (ตารางใหม่)
     await save_chat_to_history(
         db=db, user_id=user_id, message_type='user', message_content=message_text,
@@ -206,11 +207,45 @@ async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bo
     
     # บันทึกใน chat_messages เดิมด้วย (เพื่อ backward compatibility)
     await save_chat_message(db, user_id, 'user', message_text)
+=======
+    # บันทึกข้อความใน ChatHistory only (remove dual storage)
+    try:
+        await save_chat_to_history(
+            db=db, user_id=user_id, message_type='user', message_content=message_text,
+            message_id=message_id, reply_token=reply_token, session_id=session_id,
+            extra_data={"profile_data": profile_data, "timestamp": thai_time.isoformat()}
+        )
+        print(f"SUCCESS: User message saved to chat_history: {user_id}")
+    except Exception as e:
+        print(f"ERROR: Failed to save user message to chat_history: {e}")
+        # Fallback: try saving to old table
+        try:
+            await save_chat_message(db, user_id, 'user', message_text)
+            print(f"SUCCESS: User message saved to chat_messages (fallback): {user_id}")
+        except Exception as e2:
+            print(f"ERROR: Failed to save user message to any table: {e2}")
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
     
     user_status = await get_or_create_user_status(
         db, user_id, profile_data['display_name'], profile_data['picture_url']
     )
     
+<<<<<<< HEAD
+=======
+    # Broadcast new message to admin panel via WebSocket - only once
+    await manager.broadcast({
+        "type": "new_message",
+        "userId": user_id,
+        "message": message_text,
+        "messageId": f"user_{user_id}_{message_id}_{int(thai_time.timestamp() * 1000)}" if message_id else f"user_{user_id}_{int(thai_time.timestamp() * 1000)}",
+        "displayName": profile_data['display_name'],
+        "pictureUrl": profile_data['picture_url'],
+        "sessionId": session_id,
+        "timestamp": thai_time.isoformat(),
+        "senderType": "user"
+    })
+    
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
     if user_status.is_in_live_chat:
         await handle_live_chat_message(
             db, line_bot_api, user_id, message_text, reply_token, 
@@ -301,11 +336,28 @@ async def handle_live_chat_message(
                 "original_message": message_text
             }
         
+<<<<<<< HEAD
         await save_chat_to_history(
             db=db, user_id=user_id, message_type=message_type, message_content=bot_response,
             session_id=session_id, extra_data=extra_data
         )
         await save_chat_message(db, user_id, message_type, bot_response)
+=======
+        try:
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type=message_type, message_content=bot_response,
+                session_id=session_id, extra_data=extra_data
+            )
+            print(f"SUCCESS: Bot response saved to chat_history: {user_id}")
+        except Exception as e:
+            print(f"ERROR: Failed to save bot response to chat_history: {e}")
+            # Fallback: try saving to old table
+            try:
+                await save_chat_message(db, user_id, message_type, bot_response)
+                print(f"SUCCESS: Bot response saved to chat_messages (fallback): {user_id}")
+            except Exception as e2:
+                print(f"ERROR: Failed to save bot response to any table: {e2}")
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
         
         try:
             reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=bot_response)])
@@ -329,18 +381,34 @@ async def handle_bot_mode_message(
     thai_time = get_thai_time()
     
     # Check for live chat request keywords
-    live_chat_keywords = ["คุยกับแอดมิน", "ติดต่อเจ้าหน้าที่", "admin", "help", "คุยกับคน"]
+    live_chat_keywords = ["คุยกับแอดมิน", "ติดต่อเจ้าหน้าที่", "admin", "help", "คุยกับคน", "0"]
     
     if any(keyword in message_text.lower() for keyword in live_chat_keywords):
         await show_loading_animation(line_bot_api, user_id)
         await set_live_chat_status(db, user_id, True, profile_data['display_name'], profile_data['picture_url'])
         response_text = "รับทราบค่ะ! กำลังโอนสายไปยังเจ้าหน้าที่ให้นะคะ รอแป๊บนึงเดี๋ยวจะมีเจ้าหน้าที่มาคุยกับคุณค่ะ 💕"
         
+<<<<<<< HEAD
         await save_chat_to_history(
             db=db, user_id=user_id, message_type='bot', message_content=response_text,
             session_id=session_id, extra_data={"handoff_request": True, "trigger_message": message_text}
         )
         await save_chat_message(db, user_id, 'bot', response_text)
+=======
+        try:
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type='bot', message_content=response_text,
+                session_id=session_id, extra_data={"handoff_request": True, "trigger_message": message_text}
+            )
+            print(f"SUCCESS: Handoff message saved to chat_history: {user_id}")
+        except Exception as e:
+            print(f"ERROR: Failed to save handoff message to chat_history: {e}")
+            try:
+                await save_chat_message(db, user_id, 'bot', response_text)
+                print(f"SUCCESS: Handoff message saved to chat_messages (fallback): {user_id}")
+            except Exception as e2:
+                print(f"ERROR: Failed to save handoff message to any table: {e2}")
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
         
         try:
             reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=response_text)])
@@ -414,11 +482,27 @@ async def handle_bot_mode_message(
             message_type = 'bot'
             extra_data = {"standard_reply": True, "ai_unavailable": True}
         
+<<<<<<< HEAD
         await save_chat_to_history(
             db=db, user_id=user_id, message_type=message_type, message_content=response_text,
             session_id=session_id, extra_data=extra_data
         )
         await save_chat_message(db, user_id, message_type, response_text)
+=======
+        try:
+            await save_chat_to_history(
+                db=db, user_id=user_id, message_type=message_type, message_content=response_text,
+                session_id=session_id, extra_data=extra_data
+            )
+            print(f"SUCCESS: Standard response saved to chat_history: {user_id}")
+        except Exception as e:
+            print(f"ERROR: Failed to save standard response to chat_history: {e}")
+            try:
+                await save_chat_message(db, user_id, message_type, response_text)
+                print(f"SUCCESS: Standard response saved to chat_messages (fallback): {user_id}")
+            except Exception as e2:
+                print(f"ERROR: Failed to save standard response to any table: {e2}")
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
         
         try:
             reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=response_text)])

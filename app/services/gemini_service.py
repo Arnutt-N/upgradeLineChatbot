@@ -43,8 +43,15 @@ class GeminiService:
         
         # Check if Google AI is available
         if not GOOGLE_AI_AVAILABLE:
+<<<<<<< HEAD
             self.model = None
             print("⚠️ Google AI library not available - Gemini features disabled")
+=======
+            self.client = None
+            self.model = None
+            self.chat = None
+            print("⚠️ Google Genai library not available - Gemini features disabled")
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
             return
             
         # Configure Gemini API
@@ -53,7 +60,13 @@ class GeminiService:
             self._initialize_model()
         else:
             self.model = None
+<<<<<<< HEAD
             print("⚠️ No Gemini API key found - Gemini features disabled")
+=======
+            self.client = None
+            self.chat_sessions = {}
+            print("Warning: No Gemini API key found - Gemini features disabled")
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
             
         # Conversation context storage
         self.conversation_contexts: Dict[str, List[Dict]] = {}
@@ -62,6 +75,7 @@ class GeminiService:
         """Initialize the Gemini model with configuration"""
         if not GOOGLE_AI_AVAILABLE:
             self.model = None
+            self.client = None
             return
             
         try:
@@ -105,9 +119,18 @@ class GeminiService:
                 system_instruction=system_instruction
             )
             
+<<<<<<< HEAD
+=======
+            # Set client to model for backward compatibility
+            self.client = self.model
+            
+            print(f"Success: Gemini service initialized with model {self.model_name}")
+            
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
         except Exception as e:
             print(f"Failed to initialize Gemini model: {e}")
             self.model = None
+            self.client = None
     
     def is_available(self) -> bool:
         """Check if Gemini service is available"""

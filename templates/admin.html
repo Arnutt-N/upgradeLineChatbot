@@ -1679,33 +1679,7 @@
         let currentTheme = 'light';
         let currentMode = 'bot';
 
-        // Sample user data
-        const sampleUsers = new Map([
-            ['user1', {
-                id: 'user1',
-                displayName: 'นายสมชาย ใจดี',
-                avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-                isOnline: true,
-                unreadCount: 3,
-                status: 'กำลังแชท'
-            }],
-            ['user2', {
-                id: 'user2',
-                displayName: 'นางสาวสุดา สวยงาม',
-                avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-                isOnline: false,
-                unreadCount: 0,
-                status: 'ออฟไลน์ 5 นาทีที่แล้ว'
-            }],
-            ['user3', {
-                id: 'user3',
-                displayName: 'นายวิชัย เก่งมาก',
-                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-                isOnline: true,
-                unreadCount: 1,
-                status: 'ออนไลน์'
-            }]
-        ]);
+        // Sample user data REMOVED - using real data only
 
         // WebSocket Connection
         function connectWebSocket() {
@@ -1757,16 +1731,15 @@
                     updateUsersList();
                 } else {
                     console.error('❌ Failed to load users:', response.status);
-                    // Fallback to sample data for demo
-                    loadSampleData();
+                    console.log('Will keep trying to load real data only - no sample data');
                 }
             } catch (error) {
                 console.error('🚨 Error loading users:', error);
-                // Fallback to sample data for demo
-                loadSampleData();
+                console.error('Failed to load users - will keep trying real data only');
             }
         }
 
+<<<<<<< HEAD
         // Fallback sample data
         function loadSampleData() {
             console.log('📝 Loading sample data for demo');
@@ -1807,11 +1780,132 @@
         }
 
         // Handle WebSocket messages
+=======
+        // Handle WebSocket messages with Enhanced Processing
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
         function handleMessage(data) {
             console.log('📨 Handling message:', data);
             
             if (data.type === 'new_message' || data.type === 'new_user_request') {
+<<<<<<< HEAD
                 addUser(data.userId, data.displayName, data.pictureUrl);
+=======
+                console.log('🆕 Processing new message:', {
+                    userId: data.userId,
+                    currentUserId: currentUserId,
+                    message: data.message,
+                    displayName: data.displayName,
+                    timestamp: data.timestamp
+                });
+                
+                // Always add/update user in the list first
+                if (data.userId && data.displayName) {
+                    addUser(data.userId, data.displayName, data.pictureUrl);
+                    console.log('👤 Updated user in list:', data.displayName);
+                }
+                
+                // If this user is currently selected, display message immediately
+                if (currentUserId === data.userId) {
+                    console.log('💬 MATCH! Displaying new message for current user:', data.message);
+                    
+                    // Check for duplicate messages using messageId or timestamp
+                    const messageId = data.messageId || `user_${data.userId}_${data.timestamp}`;
+                    if (messageId && displayedMessages.has(messageId)) {
+                        console.log('🔄 DUPLICATE USER MESSAGE DETECTED - Skipping:', messageId);
+                        return;
+                    }
+                    
+                    // Hide any existing typing indicator first
+                    hideTypingIndicator();
+                    
+                    displayMessage(
+                        data.message, 
+                        'user', 
+                        data.timestamp || new Date().toISOString(), 
+                        data.messageType || 'text'
+                    );
+                    
+                    // Track this message as displayed
+                    if (messageId) {
+                        displayedMessages.add(messageId);
+                    }
+                    
+                    // Show typing indicator if bot might respond
+                    if (data.type === 'new_message' || data.type === 'new_user_request') {
+                        setTimeout(() => {
+                            showTypingIndicator(data.userId);
+                        }, 500); // Small delay for better UX
+                    }
+                    
+                    // Show desktop notification for current user if window is hidden
+                    if (notificationSettings.desktop && document.hidden) {
+                        showNotification('ข้อความใหม่', data.message);
+                    }
+                    
+                    // Play sound notification
+                    if (notificationSettings.sound) {
+                        document.getElementById('notificationSound').play().catch(e => {
+                            console.log('Could not play notification sound:', e);
+                        });
+                    }
+                } else {
+                    // User not currently selected, update unread count
+                    console.log('📬 New message for different user, updating unread count');
+                    updateUnreadCount(data.userId);
+                    
+                    // Show desktop notification for other users
+                    const user = users.get(data.userId);
+                    if (user && notificationSettings.desktop) {
+                        showNotification(`ข้อความจาก ${user.displayName}`, data.message);
+                    }
+                    
+                    // Play sound for any new message
+                    if (notificationSettings.sound) {
+                        document.getElementById('notificationSound').play().catch(e => {
+                            console.log('Could not play notification sound:', e);
+                        });
+                    }
+                }
+                
+                // Update user list display
+                updateUsersList();
+                console.log('✅ User list updated after new message');
+                
+            } else if (data.type === 'bot_auto_reply' || data.type === 'bot_response_complete') {
+                console.log('🤖 Processing bot auto reply:', {
+                    userId: data.userId,
+                    currentUserId: currentUserId,
+                    message: data.message,
+                    messageId: data.messageId
+                });
+                
+                if (currentUserId === data.userId) {
+                    // Check for duplicate messages using messageId
+                    if (data.messageId && displayedMessages.has(data.messageId)) {
+                        console.log('🔄 DUPLICATE MESSAGE DETECTED - Skipping:', data.messageId);
+                        return;
+                    }
+                    
+                    console.log('🤖 MATCH! Displaying bot reply for current user:', data.message);
+                    
+                    // Hide typing indicator before showing bot response
+                    hideTypingIndicator();
+                    
+                    displayMessage(
+                        data.message, 
+                        'bot', 
+                        data.timestamp || new Date().toISOString()
+                    );
+                    
+                    // Track this message as displayed
+                    if (data.messageId) {
+                        displayedMessages.add(data.messageId);
+                    }
+                }
+                
+            } else if (data.type === 'bot_typing_start') {
+                console.log('🤖 Bot started typing for user:', data.userId);
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
                 if (currentUserId === data.userId) {
                     displayMessage(data.message, 'user', data.timestamp || new Date().toISOString());
                 }
@@ -1916,7 +2010,24 @@
             setupKeyboardShortcuts();
             loadTheme();
             connectWebSocket();
+<<<<<<< HEAD
             loadUsersFromDatabase();
+=======
+            
+            // Load users from database with retry mechanism
+            console.log('📊 Loading users from database...');
+            loadUsersFromDatabase().catch(error => {
+                console.error('❌ Failed to load users on startup:', error);
+                console.log('🔄 Retrying user load in 5 seconds...');
+                setTimeout(() => {
+                    loadUsersFromDatabase().catch(retryError => {
+                        console.error('❌ Retry failed, but NOT loading sample data - using real data only:', retryError);
+                        // DO NOT load sample data - keep trying real data
+                        console.log('🔄 Will continue trying to load real data only');
+                    });
+                }, 5000);
+            });
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
             
             // Set bot mode as default active
             updateBottomNavigation();

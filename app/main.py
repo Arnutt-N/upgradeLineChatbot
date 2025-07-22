@@ -22,8 +22,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files with absolute path
+import os
+current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+static_dir = os.path.join(current_dir, "static")
+
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    print(f"Static files mounted from: {static_dir}")
+else:
+    print(f"Warning: Static directory not found at {static_dir}")
 
 @app.on_event("startup")
 async def on_startup():

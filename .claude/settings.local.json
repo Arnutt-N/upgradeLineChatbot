@@ -7,7 +7,17 @@
       "Bash(curl:*)",
       "Bash(touch:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git merge:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git rm:*)",
+      "Bash(mcp list:*)",
+      "Bash(mcp add:*)",
+      "Bash(mcp:*)",
+      "Bash(dir:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git clone:*)"
     ],
     "deny": []
   }

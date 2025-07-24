@@ -77,7 +77,7 @@
             
             /* Mobile specific */
             --mobile-header-height: 60px;
-            --mobile-bottom-nav-height: 60px;
+            --mobile-bottom-nav-height: 70px;
             --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
         }
 
@@ -252,6 +252,56 @@
             border-radius: var(--radius-full);
             font-size: var(--text-xs);
             font-weight: 600;
+        }
+
+        .enhanced-nav {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-right: var(--space-3);
+        }
+
+        .enhanced-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .enhanced-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .enhanced-btn i {
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .enhanced-nav {
+                margin-right: var(--space-2);
+            }
+            
+            .enhanced-btn span {
+                display: none;
+            }
+            
+            .enhanced-btn {
+                padding: var(--space-2);
+                min-width: 40px;
+                justify-content: center;
+            }
         }
 
         .status-dot {
@@ -598,27 +648,25 @@
             position: relative;
             flex-shrink: 0;
             overflow: hidden;
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
         }
 
         .user-avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-
-        .user-avatar.user-type {
-            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            border-radius: 50%;
         }
 
         .online-indicator {
             position: absolute;
-            bottom: -2px;
-            right: -2px;
-            width: 16px;
-            height: 16px;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
             border: 2px solid var(--surface);
             border-radius: 50%;
-            z-index: 10;
+            z-index: 20;
         }
 
         .online-indicator.online {
@@ -713,6 +761,7 @@
             font-weight: 600;
             overflow: hidden;
             flex-shrink: 0;
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
         }
 
         .chat-user-avatar img {
@@ -773,6 +822,7 @@
             color: white;
             box-shadow: var(--shadow-sm);
         }
+
 
         /* Messages Area */
         .messages-container {
@@ -843,12 +893,12 @@
         }
 
         .message-bubble {
-            padding: var(--space-4);
+            padding: var(--space-3) var(--space-4);
             border-radius: var(--radius-lg);
-            line-height: 1.6;
+            line-height: 1.5;
             word-wrap: break-word;
             font-size: var(--text-base);
-            min-height: 44px;
+            min-height: 36px;
             display: flex;
             align-items: center;
         }
@@ -906,7 +956,7 @@
             gap: var(--space-3);
             background: var(--background);
             border-radius: var(--radius-xl);
-            padding: var(--space-3) var(--space-4);
+            padding: var(--space-3);
             border: 1px solid var(--border);
             transition: var(--transition);
             min-height: 52px;
@@ -929,7 +979,9 @@
             max-height: 120px;
             line-height: 1.5;
             -webkit-appearance: none;
+            appearance: none;
             border-radius: 0;
+            padding: var(--space-1) var(--space-2);
         }
 
         .message-input::placeholder {
@@ -943,8 +995,8 @@
         }
 
         .input-btn {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border: none;
             border-radius: 50%;
             display: flex;
@@ -952,7 +1004,7 @@
             justify-content: center;
             cursor: pointer;
             transition: var(--transition);
-            font-size: var(--text-lg);
+            font-size: var(--text-base);
             position: relative;
             -webkit-tap-highlight-color: transparent;
         }
@@ -1213,7 +1265,7 @@
                 display: flex;
                 background: var(--surface);
                 border-top: 1px solid var(--border);
-                padding: var(--space-2) var(--space-4);
+                padding: var(--space-2) var(--space-3);
                 padding-bottom: max(var(--space-2), var(--mobile-safe-area-bottom));
                 justify-content: space-around;
                 align-items: center;
@@ -1240,6 +1292,8 @@
                 color: var(--text-secondary);
                 background: none;
                 border: none;
+                flex: 1;
+                max-width: 80px;
             }
 
             .bottom-nav-item.active {
@@ -1250,6 +1304,11 @@
             .bottom-nav-item i {
                 font-size: var(--text-lg);
                 margin-bottom: var(--space-1);
+            }
+
+            .bottom-nav-item span {
+                font-size: var(--text-xs);
+                font-weight: 500;
             }
         }
 
@@ -1340,9 +1399,19 @@
                 <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1 class="app-title">💬 Admin Chat</h1>
+                <h1 class="app-title">💬 Admin Live Chat</h1>
             </div>
             <div class="header-right">
+                <div class="enhanced-nav">
+                    <a href="/ui/dashboard" class="enhanced-btn" title="Enhanced Dashboard">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/ui/analytics" class="enhanced-btn" title="Analytics">
+                        <i class="fas fa-analytics"></i>
+                        <span>Analytics</span>
+                    </a>
+                </div>
                 <div class="status-indicator">
                     <div class="status-dot"></div>
                     <span>ออนไลน์</span>
@@ -1413,14 +1482,14 @@
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
-                    <h2 class="sidebar-title">ผู้ใช้</h2>
+                    <h2 class="sidebar-title">รายชื่อผู้ใช้งานที่ติดต่อเข้ามา</h2>
                     <div class="search-box">
                         <i class="fas fa-search search-icon"></i>
                         <input type="text" class="search-input" placeholder="ค้นหาผู้ใช้..." id="searchInput" aria-label="Search users">
                     </div>
                 </div>
                 <div class="users-list" id="usersList">
-                    <!-- Users will be populated here -->
+                    <!-- Users will be populated here by JavaScript -->
                 </div>
             </aside>
 
@@ -1430,34 +1499,33 @@
             <!-- Chat Area -->
             <main class="chat-area">
                 <!-- Chat Header -->
-                <div class="chat-header" id="chatHeader" style="display: none;">
+                <div class="chat-header" id="chatHeader">
                     <div class="chat-user-info">
-                        <div class="chat-user-avatar user-type" id="chatUserAvatar"></div>
+                        <div class="chat-user-avatar" id="chatUserAvatar">
+                            <span>?</span>
+                        </div>
                         <div class="chat-user-details">
-                            <h3 id="chatUserName"></h3>
-                            <p id="chatUserStatus"></p>
+                            <h3 id="chatUserName">เลือกผู้ใช้เพื่อเริ่มการสนทนา</h3>
+                            <p id="chatUserStatus">-</p>
                         </div>
                     </div>
                     <div class="chat-actions">
                         <div class="mode-toggle">
-                            <button class="mode-option active" data-mode="manual" aria-label="Manual mode">Manual</button>
-                            <button class="mode-option" data-mode="auto" aria-label="Auto mode">Auto</button>
+                            <button class="mode-option" data-mode="manual" onclick="toggleMode('manual')" aria-label="Manual mode">Manual</button>
+                            <button class="mode-option active" data-mode="bot" onclick="toggleMode('bot')" aria-label="Bot mode">Bot</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Messages Container -->
                 <div class="messages-container" id="messagesContainer">
-                    <div class="empty-state" id="emptyState">
-                        <i class="fas fa-comments"></i>
-                        <h3>เลือกผู้ใช้เพื่อเริ่มการสนทนา</h3>
-                        <p>แตะที่รายชื่อผู้ใช้เพื่อเริ่มแชท</p>
+                    <div class="messages-list" id="messagesList">
+                        <!-- Messages will be populated here by JavaScript -->
                     </div>
-                    <div class="messages-list" id="messagesList" style="display: none;"></div>
                 </div>
 
                 <!-- Input Area -->
-                <div class="input-area" id="inputArea" style="display: none;">
+                <div class="input-area" id="inputArea">
                     <emoji-picker id="emojiPicker"></emoji-picker>
                     <div class="input-container">
                         <textarea class="message-input" id="messageInput" placeholder="พิมพ์ข้อความ..." rows="1" aria-label="Message input"></textarea>
@@ -1487,13 +1555,13 @@
                 <i class="fas fa-users"></i>
                 <span>ผู้ใช้</span>
             </button>
-            <button class="bottom-nav-item" onclick="toggleMode('auto')" aria-label="Auto mode">
-                <i class="fas fa-robot"></i>
-                <span>บอท</span>
+            <button class="bottom-nav-item" onclick="toggleMode('manual')" aria-label="Manual mode">
+                <i class="fas fa-user"></i>
+                <span>Manual</span>
             </button>
-            <button class="bottom-nav-item" onclick="toggleSettings()" aria-label="Settings">
-                <i class="fas fa-cog"></i>
-                <span>ตั้งค่า</span>
+            <button class="bottom-nav-item" onclick="toggleMode('bot')" aria-label="Bot mode">
+                <i class="fas fa-robot"></i>
+                <span>Bot</span>
             </button>
         </nav>
     </div>
@@ -1598,7 +1666,7 @@
 
     <script>
         let ws = null;
-        let currentUserId = null;
+        let currentUserId = 'user1';
         let users = new Map();
         let isSidebarOpen = false;
         let notificationSettings = {
@@ -1609,22 +1677,372 @@
         const originalTitle = document.title;
         let currentView = 'chat';
         let currentTheme = 'light';
+        let currentMode = 'bot';
+
+        // Sample user data REMOVED - using real data only
+
+        // WebSocket Connection
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+            
+            ws.onopen = () => {
+                console.log('✅ WebSocket Connected');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            ws.onclose = () => {
+                console.log('❌ WebSocket connection closed, reconnecting in 3 seconds...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('🚨 WebSocket error:', error);
+            };
+        }
+
+        // Load users from database
+        async function loadUsersFromDatabase() {
+            try {
+                const response = await fetch('/admin/users');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📊 Loaded users from database:', data);
+                    
+                    users.clear();
+                    if (data.users && data.users.length > 0) {
+                        data.users.forEach(user => {
+                            users.set(user.user_id, {
+                                id: user.user_id,
+                                displayName: user.display_name || `Customer ${user.user_id.slice(-6)}`,
+                                avatar: user.picture_url || null, // ใช้ picture_url จาก API
+                                isOnline: user.is_in_live_chat,
+                                unreadCount: 0,
+                                status: user.is_in_live_chat ? 'กำลังแชท' : 'ออฟไลน์',
+                                chatEnded: !user.is_in_live_chat,
+                                chatMode: user.chat_mode || 'manual'
+                            });
+                        });
+                    }
+                    updateUsersList();
+                } else {
+                    console.error('❌ Failed to load users:', response.status);
+                    console.log('Will keep trying to load real data only - no sample data');
+                }
+            } catch (error) {
+                console.error('🚨 Error loading users:', error);
+                console.error('Failed to load users - will keep trying real data only');
+            }
+        }
+
+        // Handle WebSocket messages with Enhanced Processing
+        function handleMessage(data) {
+            console.log('📨 Handling message:', data);
+            
+            if (data.type === 'new_message' || data.type === 'new_user_request') {
+<<<<<<< HEAD
+                addUser(data.userId, data.displayName, data.pictureUrl);
+=======
+                console.log('🆕 Processing new message:', {
+                    userId: data.userId,
+                    currentUserId: currentUserId,
+                    message: data.message,
+                    displayName: data.displayName,
+                    timestamp: data.timestamp
+                });
+                
+                // Always add/update user in the list first
+                if (data.userId && data.displayName) {
+                    addUser(data.userId, data.displayName, data.pictureUrl);
+                    console.log('👤 Updated user in list:', data.displayName);
+                }
+                
+                // If this user is currently selected, display message immediately
+                if (currentUserId === data.userId) {
+                    console.log('💬 MATCH! Displaying new message for current user:', data.message);
+                    
+                    // Check for duplicate messages using messageId or timestamp
+                    const messageId = data.messageId || `user_${data.userId}_${data.timestamp}`;
+                    if (messageId && displayedMessages.has(messageId)) {
+                        console.log('🔄 DUPLICATE USER MESSAGE DETECTED - Skipping:', messageId);
+                        return;
+                    }
+                    
+                    // Hide any existing typing indicator first
+                    hideTypingIndicator();
+                    
+                    displayMessage(
+                        data.message, 
+                        'user', 
+                        data.timestamp || new Date().toISOString(), 
+                        data.messageType || 'text'
+                    );
+                    
+                    // Track this message as displayed
+                    if (messageId) {
+                        displayedMessages.add(messageId);
+                    }
+                    
+                    // Show typing indicator if bot might respond
+                    if (data.type === 'new_message' || data.type === 'new_user_request') {
+                        setTimeout(() => {
+                            showTypingIndicator(data.userId);
+                        }, 500); // Small delay for better UX
+                    }
+                    
+                    // Show desktop notification for current user if window is hidden
+                    if (notificationSettings.desktop && document.hidden) {
+                        showNotification('ข้อความใหม่', data.message);
+                    }
+                    
+                    // Play sound notification
+                    if (notificationSettings.sound) {
+                        document.getElementById('notificationSound').play().catch(e => {
+                            console.log('Could not play notification sound:', e);
+                        });
+                    }
+                } else {
+                    // User not currently selected, update unread count
+                    console.log('📬 New message for different user, updating unread count');
+                    updateUnreadCount(data.userId);
+                    
+                    // Show desktop notification for other users
+                    const user = users.get(data.userId);
+                    if (user && notificationSettings.desktop) {
+                        showNotification(`ข้อความจาก ${user.displayName}`, data.message);
+                    }
+                    
+                    // Play sound for any new message
+                    if (notificationSettings.sound) {
+                        document.getElementById('notificationSound').play().catch(e => {
+                            console.log('Could not play notification sound:', e);
+                        });
+                    }
+                }
+                
+                // Update user list display
+                updateUsersList();
+                console.log('✅ User list updated after new message');
+                
+            } else if (data.type === 'bot_auto_reply' || data.type === 'bot_response_complete') {
+                console.log('🤖 Processing bot auto reply:', {
+                    userId: data.userId,
+                    currentUserId: currentUserId,
+                    message: data.message,
+                    messageId: data.messageId
+                });
+                
+                if (currentUserId === data.userId) {
+                    // Check for duplicate messages using messageId
+                    if (data.messageId && displayedMessages.has(data.messageId)) {
+                        console.log('🔄 DUPLICATE MESSAGE DETECTED - Skipping:', data.messageId);
+                        return;
+                    }
+                    
+                    console.log('🤖 MATCH! Displaying bot reply for current user:', data.message);
+                    
+                    // Hide typing indicator before showing bot response
+                    hideTypingIndicator();
+                    
+                    displayMessage(
+                        data.message, 
+                        'bot', 
+                        data.timestamp || new Date().toISOString()
+                    );
+                    
+                    // Track this message as displayed
+                    if (data.messageId) {
+                        displayedMessages.add(data.messageId);
+                    }
+                }
+                
+            } else if (data.type === 'bot_typing_start') {
+                console.log('🤖 Bot started typing for user:', data.userId);
+>>>>>>> b0f64fe (fix: resolve static file mounting and Gemini service initialization issues)
+                if (currentUserId === data.userId) {
+                    displayMessage(data.message, 'user', data.timestamp || new Date().toISOString());
+                }
+                
+            } else if (data.type === 'bot_auto_reply') {
+                if (currentUserId === data.userId) {
+                    displayMessage(data.message, 'bot', data.timestamp || new Date().toISOString());
+                }
+                
+            } else if (data.type === 'mode_changed') {
+                if (currentUserId === data.userId) {
+                    displayMessage(data.message, 'system', data.timestamp || new Date().toISOString());
+                }
+            }
+        }
+
+        // Add user to list
+        function addUser(userId, displayName, pictureUrl) {
+            if (!users.has(userId)) {
+                users.set(userId, {
+                    id: userId,
+                    displayName: displayName || `Customer ${userId.slice(-6)}`,
+                    avatar: pictureUrl || null,  // ใช้ pictureUrl จาก WebSocket
+                    isOnline: true,
+                    unreadCount: 0,
+                    status: 'กำลังแชท',
+                    chatEnded: false,
+                    chatMode: 'manual'
+                });
+                updateUsersList();
+            }
+        }
+
+        // Update users list UI
+        function updateUsersList() {
+            const usersList = document.getElementById('usersList');
+            usersList.innerHTML = '';
+            
+            if (users.size === 0) {
+                usersList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h3>ยังไม่มีลูกค้า</h3>
+                        <p>รอลูกค้าส่งข้อความเข้ามา</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            users.forEach((user, userId) => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-item';
+                userDiv.dataset.userId = userId;
+                if (currentUserId === userId) userDiv.classList.add('active');
+
+                const avatarContent = createAvatarContent(user, 'user');
+
+                userDiv.innerHTML = `
+                    <div class="user-avatar">
+                        ${avatarContent}
+                        <div class="online-indicator ${user.isOnline ? 'online' : 'offline'}"></div>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">${user.displayName}</div>
+                        <div class="user-status">${user.chatEnded ? 'จบการสนทนา' : user.status}</div>
+                    </div>
+                    ${user.unreadCount > 0 ? `<div class="unread-count">${user.unreadCount}</div>` : ''}
+                `;
+                
+                userDiv.addEventListener('click', () => selectUser(userId));
+                usersList.appendChild(userDiv);
+            });
+        }
+
+        // Avatar management functions
+        function getDefaultAvatar(userType = 'user') {
+            const defaultAvatars = {
+                'user': '/static/images/avatars/default_user_avatar.png',
+                'admin': '/static/images/avatars/default_admin_avatar.png',
+                'bot': '/static/images/avatars/default_bot_avatar.png'
+            };
+            return defaultAvatars[userType] || defaultAvatars['user'];
+        }
+
+        function createAvatarContent(user, userType = 'user') {
+            if (user.avatar) {
+                // ถ้ามี avatar URL ให้ใช้ พร้อม fallback เป็น default avatar
+                return `<img src="${user.avatar}" 
+                            alt="${user.displayName}" 
+                            onerror="this.onerror=null;this.src='${getDefaultAvatar(userType)}';">`;
+            } else {
+                // ถ้าไม่มี avatar URL ให้ใช้ default avatar เลย
+                return `<img src="${getDefaultAvatar(userType)}" 
+                            alt="${user.displayName}" 
+                            onerror="this.onerror=null;this.style.display='none';this.parentElement.innerHTML='<span>${user.displayName.charAt(0)}</span>';">`;
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the app (includes all setup)
             initializeApp();
-            setupEventListeners();
-            setupKeyboardShortcuts();
-            loadTheme();
+            
+            // Load users from database with retry mechanism
+            console.log('📊 Loading users from database...');
+            loadUsersFromDatabase().catch(error => {
+                console.error('❌ Failed to load users on startup:', error);
+                console.log('🔄 Retrying user load in 5 seconds...');
+                setTimeout(() => {
+                    loadUsersFromDatabase().catch(retryError => {
+                        console.error('❌ Retry failed, but NOT loading sample data - using real data only:', retryError);
+                        // DO NOT load sample data - keep trying real data
+                        console.log('🔄 Will continue trying to load real data only');
+                    });
+                }, 5000);
+            });
+            
+            // Set bot mode as default active
+            updateBottomNavigation();
+            
+            // Check system status every 30 seconds
+            setInterval(async () => {
+                try {
+                    const statusResponse = await fetch('/admin/status');
+                    if (statusResponse.ok) {
+                        const status = await statusResponse.json();
+                        
+                        // Update status indicator
+                        const statusIndicator = document.querySelector('.status-indicator');
+                        if (status.ai_available && status.database_available) {
+                            statusIndicator.style.background = 'var(--success)';
+                            statusIndicator.querySelector('span').textContent = 'ออนไลน์';
+                        } else {
+                            statusIndicator.style.background = 'var(--warning)';
+                            statusIndicator.querySelector('span').textContent = 'ปัญหาระบบ';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking system status:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        type: error.constructor.name,
+                        stack: error.stack
+                    });
+                    
+                    const statusIndicator = document.querySelector('.status-indicator');
+                    if (statusIndicator) {
+                        statusIndicator.style.background = 'var(--error)';
+                        const statusSpan = statusIndicator.querySelector('span');
+                        if (statusSpan) {
+                            statusSpan.textContent = 'เชื่อมต่อไม่ได้';
+                        }
+                    }
+                }
+            }, 30000);
         });
 
         function initializeApp() {
-            connectWebSocket();
-            loadUsersFromDatabase();
+            console.log('🚀 Initializing Admin Panel...');
+            
+            // Basic setup
             autoResizeTextarea();
             
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Set up keyboard shortcuts  
+            setupKeyboardShortcuts();
+            
+            // Load theme
+            loadTheme();
+            
+            // Connect WebSocket
+            connectWebSocket();
+            
+            // Mobile responsive setup
             if (window.innerWidth <= 768) {
                 showChatView();
             }
+            
+            console.log('✅ Admin Panel initialized successfully');
         }
 
         function setupEventListeners() {
@@ -1641,13 +2059,6 @@
                 if (e.touches.length > 1) {
                     e.preventDefault();
                 }
-            });
-
-            document.querySelectorAll('.mode-option').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    toggleMode(this.dataset.mode);
-                    addHapticFeedback(this);
-                });
             });
 
             document.getElementById('searchInput').addEventListener('input', (e) => {
@@ -1804,136 +2215,120 @@
             }, 100);
         }
 
-        function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-            ws.onopen = () => console.log('WebSocket Connected');
-            ws.onmessage = (event) => handleMessage(JSON.parse(event.data));
-            ws.onclose = () => setTimeout(connectWebSocket, 3000);
-            ws.onerror = (error) => console.error('WebSocket Error:', error);
-        }
-
-        async function loadUsersFromDatabase() {
-            try {
-                const response = await fetch('/admin/users');
-                const data = await response.json();
-                data.users.forEach(user => {
-                    users.set(user.user_id, {
-                        id: user.user_id,
-                        displayName: user.display_name,
-                        messages: [],
-                        chatEnded: !user.is_in_live_chat,
-                        isOnline: user.is_in_live_chat,
-                        unreadCount: 0
-                    });
-                });
-                updateUsersList();
-            } catch (error) {
-                console.error('Error loading users:', error);
-            }
-        }
-
-        function updateUsersList() {
-            const usersList = document.getElementById('usersList');
-            usersList.innerHTML = '';
-            
-            if (users.size === 0) {
-                usersList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <h3>ยังไม่มีผู้ใช้</h3>
-                        <p>รอผู้ใช้ส่งข้อความเข้ามา</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            users.forEach((user, userId) => {
-                const userDiv = document.createElement('div');
-                userDiv.className = 'user-item';
-                userDiv.dataset.userId = userId;
-                if (currentUserId === userId) userDiv.classList.add('active');
-
-                userDiv.innerHTML = `
-                    <div class="user-avatar user-type">
-                        <span>${user.displayName.charAt(0)}</span>
-                        <div class="online-indicator ${user.isOnline ? 'online' : 'offline'}"></div>
-                    </div>
-                    <div class="user-info">
-                        <div class="user-name">${user.displayName}</div>
-                        <div class="user-status">${user.chatEnded ? 'จบการสนทนา' : (user.isOnline ? 'ออนไลน์' : 'ออฟไลน์')}</div>
-                    </div>
-                    ${user.unreadCount > 0 ? `<div class="unread-count">${user.unreadCount}</div>` : ''}
-                `;
-                
-                userDiv.addEventListener('click', () => {
-                    selectUser(userId);
-                    addHapticFeedback(userDiv);
-                });
-                
-                usersList.appendChild(userDiv);
-            });
-        }
-
         async function selectUser(userId) {
             currentUserId = userId;
             const user = users.get(userId);
             if (!user) return;
 
-            totalUnreadCount -= user.unreadCount;
-            user.unreadCount = 0;
-            updateFaviconBadge();
-            updateUsersList();
+            // Update UI
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.userId === userId);
+            });
 
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('chatHeader').style.display = 'flex';
-            document.getElementById('messagesList').style.display = 'flex';
-            document.getElementById('inputArea').style.display = 'block';
+            // Update chat header
+            const chatUserAvatar = document.getElementById('chatUserAvatar');
+            const chatUserName = document.getElementById('chatUserName');
+            const chatUserStatus = document.getElementById('chatUserStatus');
 
-            document.getElementById('chatUserAvatar').innerHTML = `<span>${user.displayName.charAt(0)}</span>`;
-            document.getElementById('chatUserName').textContent = user.displayName;
-            document.getElementById('chatUserStatus').textContent = user.isOnline ? 'ออนไลน์' : 'ออฟไลน์';
-
-            await loadMessagesFromDatabase(userId);
+            // Update chat header avatar
+            chatUserAvatar.innerHTML = createAvatarContent(user, 'user');
             
+            chatUserName.textContent = user.displayName;
+            chatUserStatus.textContent = user.isOnline ? 'ออนไลน์ • กำลังพิมพ์...' : user.status;
+
+            // Clear unread count
+            user.unreadCount = 0;
+            const unreadElement = document.querySelector(`[data-user-id="${userId}"] .unread-count`);
+            if (unreadElement) {
+                unreadElement.remove();
+            }
+
+            // Load messages from database
+            await loadMessagesFromDatabase(userId);
+
             if (window.innerWidth <= 768) {
                 closeSidebar();
                 showChatView();
             }
         }
 
+        // Load messages from database
         async function loadMessagesFromDatabase(userId) {
             try {
                 const response = await fetch(`/admin/messages/${userId}`);
-                const data = await response.json();
-                if (users.has(userId)) {
-                    users.get(userId).messages = data.messages.map(msg => ({ ...msg, type: msg.sender_type }));
+                if (response.ok) {
+                    const data = await response.json();
+                    const messagesList = document.getElementById('messagesList');
+                    messagesList.innerHTML = ''; // Clear existing messages
+                    
+                    console.log('Loaded messages:', data.messages); // Debug logging
+                    
+                    data.messages.forEach(msg => {
+                        console.log('Processing message:', msg.message, 'Type:', msg.sender_type, 'Timestamp:', msg.created_at); // Debug logging
+                        displayMessage(msg.message, msg.sender_type, msg.created_at);
+                    });
+                    scrollToBottom();
+                } else {
+                    console.error('Failed to load messages:', response.status);
                 }
-                displayMessages(userId);
             } catch (error) {
                 console.error('Error loading messages:', error);
             }
-        }
-
-        function displayMessages(userId) {
-            const messagesList = document.getElementById('messagesList');
-            messagesList.innerHTML = '';
-            if (users.has(userId)) {
-                users.get(userId).messages.forEach(msg => {
-                    displayMessage(msg.message, msg.type, msg.created_at);
-                });
-            }
-            scrollToBottom();
         }
 
         function displayMessage(message, type, timestamp) {
             const messagesList = document.getElementById('messagesList');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
-            const time = new Date(timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            
+            // Enhanced timestamp handling with Thai timezone
+            let time;
+            try {
+                const date = new Date(timestamp);
+                // Check if the date is valid
+                if (isNaN(date.getTime())) {
+                    time = new Date().toLocaleTimeString('th-TH', { 
+                        timeZone: 'Asia/Bangkok',
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                } else {
+                    time = date.toLocaleTimeString('th-TH', { 
+                        timeZone: 'Asia/Bangkok',
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                }
+            } catch (e) {
+                console.error('Error parsing timestamp:', timestamp, e);
+                time = new Date().toLocaleTimeString('th-TH', { 
+                    timeZone: 'Asia/Bangkok',
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
+
+            let avatarContent = '';
+            if (type === 'user' && currentUserId) {
+                const user = users.get(currentUserId);
+                if (user) {
+                    avatarContent = createAvatarContent(user, 'user');
+                } else {
+                    avatarContent = `<img src="${getDefaultAvatar('user')}" alt="User Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>U</span>';">`;
+                }
+            } else if (type === 'admin') {
+                avatarContent = `<img src="${getDefaultAvatar('admin')}" alt="Admin Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>A</span>';">`;
+            } else if (type === 'bot' || type === 'ai_bot') {
+                avatarContent = `<img src="${getDefaultAvatar('bot')}" alt="Bot Avatar" onerror="this.style.display='none';this.parentElement.innerHTML='<span>🤖</span>';">`;
+            } else {
+                avatarContent = `<span>${type.charAt(0).toUpperCase()}</span>`;
+            }
 
             messageDiv.innerHTML = `
-                <div class="message-avatar"><span>${type.charAt(0).toUpperCase()}</span></div>
+                <div class="message-avatar">${avatarContent}</div>
                 <div class="message-content">
                     <div class="message-bubble">${message}</div>
                     <div class="message-time">${time}</div>
@@ -1948,58 +2343,39 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        function handleMessage(data) {
-            if (data.type === 'new_message' || data.type === 'new_user_request') {
-                if (!users.has(data.userId)) {
-                    users.set(data.userId, { 
-                        id: data.userId, 
-                        displayName: data.displayName, 
-                        messages: [], 
-                        isOnline: true, 
-                        unreadCount: 0 
-                    });
-                    updateUsersList();
-                }
-                
-                const user = users.get(data.userId);
-                const messageData = { message: data.message, type: 'user', timestamp: new Date().toISOString() };
-                user.messages.push(messageData);
-
-                if (currentUserId === data.userId) {
-                    displayMessage(data.message, 'user', messageData.timestamp);
-                } else {
-                    user.unreadCount++;
-                    totalUnreadCount++;
-                    updateFaviconBadge();
-                    updateUsersList();
-                    showNotification(`ข้อความใหม่จาก ${user.displayName}`, data.message);
-                }
-            }
-        }
-
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
             if (!message || !currentUserId) return;
 
-            const messageData = { user_id: currentUserId, message: message };
             try {
-                await fetch('/admin/reply', {
+                const response = await fetch('/admin/reply', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(messageData)
+                    body: JSON.stringify({
+                        user_id: currentUserId,
+                        message: message
+                    })
                 });
-                input.value = '';
-                autoResizeTextarea();
-                const timestamp = new Date().toISOString();
-                displayMessage(message, 'admin', timestamp);
-                users.get(currentUserId).messages.push({ message, type: 'admin', timestamp });
-                
-                if (navigator.vibrate) {
-                    navigator.vibrate(20);
+
+                if (response.ok) {
+                    const timestamp = new Date().toISOString();
+                    displayMessage(message, 'admin', timestamp);
+                    
+                    input.value = '';
+                    autoResizeTextarea();
+                    
+                    // Haptic feedback
+                    if (navigator.vibrate) {
+                        navigator.vibrate(20);
+                    }
+                } else {
+                    console.error('Failed to send message:', response.status);
+                    alert('ไม่สามารถส่งข้อความได้ กรุณาลองใหม่');
                 }
             } catch (error) {
                 console.error('Error sending message:', error);
+                alert('เกิดข้อผิดพลาดในการส่งข้อความ');
             }
         }
 
@@ -2060,6 +2436,19 @@
             } else if (currentView === 'users') {
                 document.querySelector('.bottom-nav-item[onclick="showUsersView()"]').classList.add('active');
             }
+            
+            // Update mode buttons in mobile nav
+            document.querySelectorAll('.bottom-nav-item[onclick*="toggleMode"]').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            if (currentMode === 'manual') {
+                const manualBtn = document.querySelector('.bottom-nav-item[onclick="toggleMode(\'manual\')"]');
+                if (manualBtn) manualBtn.classList.add('active');
+            } else if (currentMode === 'bot') {
+                const botBtn = document.querySelector('.bottom-nav-item[onclick="toggleMode(\'bot\')"]');
+                if (botBtn) botBtn.classList.add('active');
+            }
         }
 
         function toggleEmojiPicker() {
@@ -2089,12 +2478,41 @@
             notificationSettings.sound = enabled;
         }
 
-        function toggleMode(mode) {
+        async function toggleMode(mode) {
+            currentMode = mode;
             console.log('Toggle mode:', mode);
+            
+            // Update mode buttons in desktop
             document.querySelectorAll('.mode-option').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
+            
+            // Update mobile navigation
+            updateBottomNavigation();
+            
+            // Only send to backend if a user is selected
+            if (currentUserId) {
+                try {
+                    // Send mode change to backend
+                    await fetch('/admin/toggle_mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: currentUserId,
+                            mode: mode
+                        })
+                    });
+                    
+                    // Show notification message
+                    const modeText = mode === 'manual' ? 'Manual (แอดมินตอบเอง)' : 'Bot (บอทตอบอัตโนมัติ)';
+                    displayMessage(`🔄 เปลี่ยนเป็นโหมด ${modeText} แล้ว`, 'system', new Date().toISOString());
+                    
+                } catch (error) {
+                    console.error('Error toggling mode:', error);
+                }
+            }
         }
+
 
         function showNotification(title, body) {
             if (notificationSettings.sound) {
@@ -2105,24 +2523,53 @@
             }
         }
 
-        function updateFaviconBadge() {
-            const favicon = document.querySelector("link[rel='icon']");
-            if (totalUnreadCount > 0) {
-                const badge = totalUnreadCount > 9 ? '9+' : totalUnreadCount;
-                const newFavicon = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text><circle cx=%2275%22 cy=%2225%22 r=%2225%22 fill=%22red%22/><text x=%2275%22 y=%2235%22 font-size=%2230%22 fill=%22white%22 text-anchor=%22middle%22>${badge}</text></svg>`;
-                favicon.href = newFavicon;
-                document.title = `(${badge}) ${originalTitle}`;
-            } else {
-                favicon.href = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>`;
-                document.title = originalTitle;
+        async function refreshData() {
+            console.log('Refreshing data...');
+            
+            try {
+                // Check system status
+                const statusResponse = await fetch('/admin/status');
+                if (statusResponse.ok) {
+                    const status = await statusResponse.json();
+                    console.log('System status:', status);
+                    
+                    // Update status indicator
+                    const statusIndicator = document.querySelector('.status-indicator');
+                    if (status.ai_available && status.database_available) {
+                        statusIndicator.style.background = 'var(--success)';
+                        statusIndicator.querySelector('span').textContent = 'ออนไลน์';
+                    } else {
+                        statusIndicator.style.background = 'var(--warning)';
+                        statusIndicator.querySelector('span').textContent = 'ปัญหาระบบ';
+                    }
+                }
+                
+                // Refresh user list
+                await loadUsersFromDatabase();
+                
+                // Refresh current user's messages if selected
+                if (currentUserId) {
+                    await loadMessagesFromDatabase(currentUserId);
+                }
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+                console.error('Refresh error details:', {
+                    message: error.message,
+                    type: error.constructor.name,
+                    stack: error.stack
+                });
+                
+                // Update status indicator to show error
+                const statusIndicator = document.querySelector('.status-indicator');
+                if (statusIndicator) {
+                    statusIndicator.style.background = 'var(--error)';
+                    const statusSpan = statusIndicator.querySelector('span');
+                    if (statusSpan) {
+                        statusSpan.textContent = 'เชื่อมต่อไม่ได้';
+                    }
+                }
             }
-        }
-
-        function refreshData() {
-            if (currentUserId) {
-                loadMessagesFromDatabase(currentUserId);
-            }
-            loadUsersFromDatabase();
         }
 
         function showShortcuts() {
@@ -2140,7 +2587,7 @@
             }
 
             const user = users.get(currentUserId);
-            const messages = user.messages;
+            const messages = document.querySelectorAll('.message');
             
             if (messages.length === 0) {
                 alert('ไม่มีข้อความให้ส่งออก');
@@ -2154,9 +2601,12 @@
             exportContent += `${'='.repeat(50)}\n\n`;
 
             messages.forEach(msg => {
-                const time = new Date(msg.timestamp || msg.created_at).toLocaleString('th-TH');
-                const sender = msg.type === 'user' ? 'ผู้ใช้' : (msg.type === 'admin' ? 'แอดมิน' : 'บอท');
-                exportContent += `[${time}] ${sender}: ${msg.message}\n\n`;
+                const time = msg.querySelector('.message-time').textContent;
+                const text = msg.querySelector('.message-bubble').textContent;
+                const type = msg.classList.contains('user') ? 'ผู้ใช้' : 
+                           msg.classList.contains('admin') ? 'แอดมิน' : 
+                           msg.classList.contains('bot') ? 'บอท' : 'ระบบ';
+                exportContent += `[${time}] ${type}: ${text}\n\n`;
             });
 
             // Create and download file
@@ -2205,54 +2655,157 @@
     <script src="/static/js/loading-animations.js"></script>
     <script src="/static/js/admin-enhanced.js"></script>
 
-    <!-- Integration Script สำหรับเชื่อมต่อกับ enhanced features -->
+    <!-- Override existing functions with enhanced versions -->
     <script>
-        // Override loadUsersFromDatabase ให้ใช้ enhanced version
-        const originalLoadUsersFromDatabase = loadUsersFromDatabase;
-        loadUsersFromDatabase = async function() {
+        // Override loadUsersFromDatabase function
+        async function loadUsersFromDatabase() {
             console.log('🔄 Using enhanced user loading...');
-            if (window.adminPanel && window.adminPanel.loadUsersWithRetry) {
-                return await window.adminPanel.loadUsersWithRetry();
-            } else {
-                // Fallback to original function
-                return await originalLoadUsersFromDatabase();
-            }
-        };
+            return await window.adminPanel.loadUsersWithRetry();
+        }
 
-        // Override sendMessage ให้ใช้ enhanced version  
-        const originalSendMessage = sendMessage;
-        sendMessage = async function() {
+        // Override sendMessage function
+        async function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
-            if (!message || !currentUserId) return;
+            if (!message) return;
 
             console.log('📤 Using enhanced message sending...');
-            if (window.adminPanel && window.adminPanel.sendMessageEnhanced) {
-                await window.adminPanel.sendMessageEnhanced(message, currentUserId);
-            } else {
-                // Fallback to original function
-                await originalSendMessage();
-            }
-        };
+            await window.adminPanel.sendMessageEnhanced(message);
+        }
 
         // Enhanced initialization
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing with enhanced features...');
+            console.log('🚀 Initializing enhanced admin panel...');
             
-            // Initialize loading manager
-            if (window.loadingManager) {
-                console.log('✅ Loading Animation Manager available');
-            }
+            // เรียก initialization functions เดิม
+            initializeApp();
+            setupEventListeners();
+            setupKeyboardShortcuts();
+            loadTheme();
+            connectWebSocket();
+            updateBottomNavigation();
+
+            // เพิ่ม enhanced loading
+            setTimeout(() => {
+                console.log('📊 Loading users with enhanced features...');
+                loadUsersFromDatabase();
+            }, 1000);
+
+            // Toast notifications CSS
+            const toastStyles = `
+                .toast {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--surface);
+                    color: var(--text-primary);
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    box-shadow: var(--shadow-lg);
+                    border-left: 4px solid var(--primary);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    z-index: 10000;
+                    transform: translateX(100%);
+                    opacity: 0;
+                    transition: all 0.3s ease;
+                    max-width: 300px;
+                    font-size: 14px;
+                }
+                
+                .toast.show {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                
+                .toast-success { border-left-color: var(--success); }
+                .toast-error { border-left-color: var(--error); }
+                .toast-warning { border-left-color: var(--warning); }
+                .toast-info { border-left-color: var(--primary); }
+                
+                .empty-state {
+                    text-align: center;
+                    padding: 40px 20px;
+                    color: var(--text-secondary);
+                }
+                
+                .empty-icon {
+                    font-size: 48px;
+                    margin-bottom: 16px;
+                    opacity: 0.5;
+                }
+                
+                .empty-state h3 {
+                    margin: 0 0 8px 0;
+                    font-size: 18px;
+                    color: var(--text-primary);
+                }
+                
+                .empty-state p {
+                    margin: 0 0 16px 0;
+                    font-size: 14px;
+                }
+                
+                .empty-messages {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100%;
+                    min-height: 200px;
+                }
+                
+                .btn-icon {
+                    background: none;
+                    border: none;
+                    color: var(--text-secondary);
+                    font-size: 16px;
+                    padding: 8px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                
+                .btn-icon:hover {
+                    background: var(--border-light);
+                    color: var(--text-primary);
+                }
+                
+                .user-avatar-small {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                }
+                
+                .chat-user-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+                
+                .chat-actions {
+                    display: flex;
+                    gap: 8px;
+                }
+                
+                @media (max-width: 768px) {
+                    .toast {
+                        right: 16px;
+                        left: 16px;
+                        max-width: none;
+                    }
+                }
+            `;
             
-            // Initialize enhanced admin panel
-            if (window.adminPanel) {
-                console.log('✅ Enhanced Admin Panel available');
-            }
-            
-            console.log('✅ Enhanced features integrated with original UI');
+            const styleSheet = document.createElement('style');
+            styleSheet.textContent = toastStyles;
+            document.head.appendChild(styleSheet);
         });
 
-        console.log('✅ Enhanced Admin Panel Integration loaded');
+        // เพิ่ม logging สำหรับ debugging
+        console.log('✅ Enhanced Admin Panel Scripts Loaded');
     </script>
 </body>
 </html>

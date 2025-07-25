@@ -5,7 +5,8 @@ import httpx
 from datetime import datetime
 from typing import Dict, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest, ShowLoadingAnimationRequest
+from linebot.v3.messaging import AsyncMessagingApi, AsyncMessagingApiBlob, TextMessage, ReplyMessageRequest, PushMessageRequest
+# ShowLoadingAnimationRequest removed for compatibility
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, ImageMessageContent, FileMessageContent, FollowEvent, UnfollowEvent
 
 from app.core.config import settings
@@ -172,51 +173,12 @@ async def send_to_telegram_actual(
 # ========================================
 
 async def show_loading_animation(line_bot_api: AsyncMessagingApi, user_id: str, seconds: int = 3):
-    """แสดง loading animation พร้อมการกำหนดเวลาและ fallback graceful"""
+    """แสดง loading animation - disabled for compatibility"""
     try:
-        # Maximum allowed loading time is 60 seconds
-        loading_seconds = min(seconds, 60)
-        
-        loading_request = ShowLoadingAnimationRequest(
-            chat_id=user_id,
-            loading_seconds=loading_seconds
-        )
-        await line_bot_api.show_loading_animation(loading_request)
-        print(f"✅ Loading animation shown for user {user_id} ({loading_seconds}s)")
-        
-        # Also broadcast to admin panel for visual feedback
-        from app.services.ws_manager import manager
-        await manager.broadcast({
-            "type": "user_typing",
-            "userId": user_id,
-            "isTyping": True,
-            "loadingSeconds": loading_seconds,
-            "timestamp": get_thai_time().isoformat()
-        })
-        
+        # ShowLoadingAnimationRequest not available in current SDK version
+        pass
     except Exception as e:
-        error_msg = str(e)
-        print(f"⚠️  Loading animation failed for user {user_id}: {error_msg}")
-        
-        # Provide fallback visual feedback in admin panel
-        try:
-            from app.services.ws_manager import manager
-            await manager.broadcast({
-                "type": "user_typing",
-                "userId": user_id,
-                "isTyping": True,
-                "fallback": True,
-                "loadingSeconds": seconds,
-                "error": "LINE loading animation unavailable",
-                "timestamp": get_thai_time().isoformat()
-            })
-        except Exception as broadcast_e:
-            print(f"❌ Failed to broadcast loading fallback: {broadcast_e}")
-        
-        # Don't raise the exception - this shouldn't break the chat flow
-        return False
-    
-    return True
+        print(f"Could not show loading animation: {e}")
 
 async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
     """จัดการข้อความ - Enhanced version with comprehensive tracking"""
@@ -230,45 +192,19 @@ async def handle_message_enhanced(event: MessageEvent, db: AsyncSession, line_bo
     
     profile_data = await get_user_profile_enhanced(line_bot_api, user_id)
     
-    # บันทึกข้อความใน ChatHistory only (remove dual storage)
-    try:
-        await save_chat_to_history(
-            db=db, user_id=user_id, message_type='user', message_content=message_text,
-            message_id=message_id, reply_token=reply_token, session_id=session_id,
-            extra_data={"profile_data": profile_data, "timestamp": thai_time.isoformat()}
-        )
-        print(f"SUCCESS: User message saved to chat_history: {user_id}")
-    except Exception as e:
-        print(f"ERROR: Failed to save user message to chat_history: {e}")
-        # Fallback: try saving to old table
-        try:
-            await save_chat_message(db, user_id, 'user', message_text)
-            print(f"SUCCESS: User message saved to chat_messages (fallback): {user_id}")
-        except Exception as e2:
-            print(f"ERROR: Failed to save user message to any table: {e2}")
+    # บันทึกข้อความใน ChatHistory (ตารางใหม่)
+    await save_chat_to_history(
+        db=db, user_id=user_id, message_type='user', message_content=message_text,
+        message_id=message_id, reply_token=reply_token, session_id=session_id,
+        extra_data={"profile_data": profile_data, "timestamp": thai_time.isoformat()}
+    )
+    
+    # บันทึกใน chat_messages เดิมด้วย (เพื่อ backward compatibility)
+    await save_chat_message(db, user_id, 'user', message_text)
     
     user_status = await get_or_create_user_status(
         db, user_id, profile_data['display_name'], profile_data['picture_url']
     )
-    
-    # Broadcast new message to admin panel via WebSocket with consistent format
-    broadcast_data = {
-        "type": "new_message",
-        "userId": user_id,
-        "message": message_text,
-        "messageId": f"user_{user_id}_{message_id}_{int(thai_time.timestamp() * 1000)}" if message_id else f"user_{user_id}_{int(thai_time.timestamp() * 1000)}",
-        "displayName": profile_data['display_name'],
-        "pictureUrl": profile_data['picture_url'],
-        "sessionId": session_id,
-        "timestamp": thai_time.isoformat(),
-        "senderType": "user",
-        "isRead": False,
-        "chatMode": getattr(user_status, 'chat_mode', 'manual'),
-        "isInLiveChat": getattr(user_status, 'is_in_live_chat', False)
-    }
-    
-    print(f"Broadcasting new message from user {user_id}: {message_text[:50]}...")
-    await manager.broadcast(broadcast_data)
     
     if user_status.is_in_live_chat:
         await handle_live_chat_message(
@@ -291,15 +227,9 @@ async def handle_live_chat_message(
     thai_time = get_thai_time()
     
     await manager.broadcast({
-        "type": "live_chat_message", 
-        "userId": user_id, 
-        "message": message_text,
-        "displayName": profile_data['display_name'], 
-        "pictureUrl": profile_data['picture_url'],
-        "sessionId": session_id, 
-        "timestamp": thai_time.isoformat(),
-        "senderType": "user",
-        "chatMode": user_status.chat_mode
+        "type": "new_message", "userId": user_id, "message": message_text,
+        "displayName": profile_data['display_name'], "pictureUrl": profile_data['picture_url'],
+        "sessionId": session_id, "timestamp": thai_time.isoformat()
     })
     
     # Handle auto mode with AI response
@@ -366,20 +296,11 @@ async def handle_live_chat_message(
                 "original_message": message_text
             }
         
-        try:
-            await save_chat_to_history(
-                db=db, user_id=user_id, message_type=message_type, message_content=bot_response,
-                session_id=session_id, extra_data=extra_data
-            )
-            print(f"SUCCESS: Bot response saved to chat_history: {user_id}")
-        except Exception as e:
-            print(f"ERROR: Failed to save bot response to chat_history: {e}")
-            # Fallback: try saving to old table
-            try:
-                await save_chat_message(db, user_id, message_type, bot_response)
-                print(f"SUCCESS: Bot response saved to chat_messages (fallback): {user_id}")
-            except Exception as e2:
-                print(f"ERROR: Failed to save bot response to any table: {e2}")
+        await save_chat_to_history(
+            db=db, user_id=user_id, message_type=message_type, message_content=bot_response,
+            session_id=session_id, extra_data=extra_data
+        )
+        await save_chat_message(db, user_id, message_type, bot_response)
         
         try:
             reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=bot_response)])
@@ -391,14 +312,7 @@ async def handle_live_chat_message(
             )
         
         await manager.broadcast({
-            "type": "bot_auto_reply", 
-            "userId": user_id, 
-            "message": bot_response, 
-            "sessionId": session_id,
-            "timestamp": thai_time.isoformat(),
-            "senderType": "bot",
-            "messageType": message_type,
-            "displayName": "AI Assistant"
+            "type": "bot_auto_reply", "userId": user_id, "message": bot_response, "sessionId": session_id
         })
 
 async def handle_bot_mode_message(
@@ -410,26 +324,18 @@ async def handle_bot_mode_message(
     thai_time = get_thai_time()
     
     # Check for live chat request keywords
-    live_chat_keywords = ["คุยกับแอดมิน", "ติดต่อเจ้าหน้าที่", "admin", "help", "คุยกับคน", "0"]
+    live_chat_keywords = ["คุยกับแอดมิน", "ติดต่อเจ้าหน้าที่", "admin", "help", "คุยกับคน"]
     
     if any(keyword in message_text.lower() for keyword in live_chat_keywords):
         await show_loading_animation(line_bot_api, user_id)
         await set_live_chat_status(db, user_id, True, profile_data['display_name'], profile_data['picture_url'])
-        response_text = "รับทราบค่ะ! กำลังโอนสายไปยังเจ้าหน้าที่ให้นะคะ รอแป๊บนึงเดี๋ยวจะมีเจ้าหน้าที่มาคุยกับคุณค่ะ 💕"
+        response_text = "รับทราบค่ะ กำลังโอนสายไปยังเจ้าหน้าที่ รอสักครู่นะคะ..."
         
-        try:
-            await save_chat_to_history(
-                db=db, user_id=user_id, message_type='bot', message_content=response_text,
-                session_id=session_id, extra_data={"handoff_request": True, "trigger_message": message_text}
-            )
-            print(f"SUCCESS: Handoff message saved to chat_history: {user_id}")
-        except Exception as e:
-            print(f"ERROR: Failed to save handoff message to chat_history: {e}")
-            try:
-                await save_chat_message(db, user_id, 'bot', response_text)
-                print(f"SUCCESS: Handoff message saved to chat_messages (fallback): {user_id}")
-            except Exception as e2:
-                print(f"ERROR: Failed to save handoff message to any table: {e2}")
+        await save_chat_to_history(
+            db=db, user_id=user_id, message_type='bot', message_content=response_text,
+            session_id=session_id, extra_data={"handoff_request": True, "trigger_message": message_text}
+        )
+        await save_chat_message(db, user_id, 'bot', response_text)
         
         try:
             reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=response_text)])
@@ -448,16 +354,9 @@ async def handle_bot_mode_message(
         )
         
         await manager.broadcast({
-            "type": "new_user_request", 
-            "userId": user_id, 
-            "message": message_text,
-            "displayName": profile_data['display_name'], 
-            "pictureUrl": profile_data['picture_url'],
-            "sessionId": session_id, 
-            "timestamp": thai_time.isoformat(),
-            "senderType": "user",
-            "requestType": "chat_handoff",
-            "priority": "high"
+            "type": "new_user_request", "userId": user_id, "message": message_text,
+            "displayName": profile_data['display_name'], "pictureUrl": profile_data['picture_url'],
+            "sessionId": session_id, "timestamp": thai_time.isoformat()
         })
     else:
         await show_loading_animation(line_bot_api, user_id)
@@ -506,23 +405,15 @@ async def handle_bot_mode_message(
                 extra_data = {"standard_reply": True, "ai_fallback": True, "exception": str(e)}
         else:
             # Standard response when AI is not available
-            response_text = "สวัสดีค่ะ! ดีใจที่ได้พบกับคุณนะคะ 😊 หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่' ได้เลยค่ะ"
+            response_text = "สวัสดีค่ะ! ขอบคุณที่ติดต่อเรามา หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่' ค่ะ"
             message_type = 'bot'
             extra_data = {"standard_reply": True, "ai_unavailable": True}
         
-        try:
-            await save_chat_to_history(
-                db=db, user_id=user_id, message_type=message_type, message_content=response_text,
-                session_id=session_id, extra_data=extra_data
-            )
-            print(f"SUCCESS: Standard response saved to chat_history: {user_id}")
-        except Exception as e:
-            print(f"ERROR: Failed to save standard response to chat_history: {e}")
-            try:
-                await save_chat_message(db, user_id, message_type, response_text)
-                print(f"SUCCESS: Standard response saved to chat_messages (fallback): {user_id}")
-            except Exception as e2:
-                print(f"ERROR: Failed to save standard response to any table: {e2}")
+        await save_chat_to_history(
+            db=db, user_id=user_id, message_type=message_type, message_content=response_text,
+            session_id=session_id, extra_data=extra_data
+        )
+        await save_chat_message(db, user_id, message_type, response_text)
         
         try:
             reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=response_text)])
@@ -552,7 +443,7 @@ async def handle_follow_event(event: FollowEvent, db: AsyncSession, line_bot_api
     )
     await get_or_create_user_status(db, user_id, profile_data['display_name'], profile_data['picture_url'])
     
-    welcome_message = f"สวัสดีค่ะ คุณ{profile_data['display_name']}! ยินดีต้อนรับสู่ระบบของเราค่ะ 🎉✨ ดีใจที่ได้รู้จักนะคะ มีอะไรให้ช่วยเหลือไหมคะ?"
+    welcome_message = f"สวัสดีค่ะ {profile_data['display_name']}! ยินดีต้อนรับสู่ระบบของเรา 🎉"
     try:
         reply_request = ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=welcome_message)])
         await line_bot_api.reply_message(reply_request)
@@ -563,17 +454,10 @@ async def handle_follow_event(event: FollowEvent, db: AsyncSession, line_bot_api
         )
     
     await send_telegram_notification_enhanced(
-        db=db, notification_type="new_friend", title="🎉 เพื่อนใหม่เข้าร่วม",
-        message=f"""👤 ชื่อ: {profile_data['display_name']}
-🆔 User ID: {user_id}
-🕐 เวลา: {thai_time.strftime('%Y-%m-%d %H:%M:%S')}
-📱 ภาษา: {profile_data.get('language', 'ไม่ทราบ')}
-💬 สถานะ: {profile_data.get('status_message', 'ไม่มีสถานะ')}
-📸 รูปโปรไฟล์: {'✅ มี' if profile_data.get('picture_url') else '❌ ไม่มี'}
-
-🎊 ยินดีต้อนรับสู่ระบบ!""",
+        db=db, notification_type="new_friend", title="👋 เพื่อนใหม่",
+        message=f"ชื่อ: {profile_data['display_name']}\nUser ID: {user_id}",
         user_id=user_id, priority=1,
-        data={"user_profile": profile_data, "timestamp": thai_time.isoformat(), "event_type": "new_friend"}
+        data={"user_profile": profile_data, "timestamp": thai_time.isoformat()}
     )
 
 async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession, line_bot_api: AsyncMessagingApi):
@@ -590,30 +474,11 @@ async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession, line_bot
     )
     await set_live_chat_status(db, user_id, False)
     
-    # Try to get the last known profile data
-    try:
-        from sqlalchemy import select, desc
-        result = await db.execute(
-            select(UserStatus.display_name, UserStatus.picture_url)
-            .where(UserStatus.user_id == user_id)
-        )
-        user_status = result.first()
-        if user_status:
-            profile_data["display_name"] = user_status.display_name or f"User {user_id[-6:]}"
-            profile_data["had_picture"] = "✅ มี" if user_status.picture_url else "❌ ไม่มี"
-    except:
-        pass
-    
     await send_telegram_notification_enhanced(
-        db=db, notification_type="friend_left", title="😔 เพื่อนออกจากระบบ", 
-        message=f"""👤 ชื่อ: {profile_data['display_name']}
-🆔 User ID: {user_id}
-🕐 เวลา: {thai_time.strftime('%Y-%m-%d %H:%M:%S')}
-📸 รูปโปรไฟล์: {profile_data.get('had_picture', 'ไม่ทราบ')}
-
-💔 ขอบคุณที่เคยใช้บริการของเรา""",
+        db=db, notification_type="friend_left", title="👋 เพื่อนออกจากระบบ", 
+        message=f"ชื่อ: {profile_data['display_name']}\nUser ID: {user_id}",
         user_id=user_id, priority=1,
-        data={"user_profile": profile_data, "timestamp": thai_time.isoformat(), "event_type": "friend_left"}
+        data={"user_profile": profile_data, "timestamp": thai_time.isoformat()}
     )
 
 # ========================================

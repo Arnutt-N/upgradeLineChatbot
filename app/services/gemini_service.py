@@ -12,7 +12,7 @@ try:
     GOOGLE_AI_AVAILABLE = True
 except ImportError:
     GOOGLE_AI_AVAILABLE = False
-    print("Warning: Google AI not available - Gemini features disabled")
+    print("⚠️ Google AI not available - Gemini features disabled")
 
 import io
 try:
@@ -36,37 +36,24 @@ class GeminiService:
     def __init__(self):
         """Initialize Gemini service with API configuration"""
         self.api_key = os.environ.get("GEMINI_API_KEY") or getattr(settings, 'GEMINI_API_KEY', None)
-        self.model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-1.5-flash')  # Use stable model
+        self.model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-2.0-flash')
         self.temperature = getattr(settings, 'GEMINI_TEMPERATURE', 0.7)
         self.max_tokens = getattr(settings, 'GEMINI_MAX_TOKENS', 1000)
         self.enable_safety = getattr(settings, 'GEMINI_ENABLE_SAFETY', True)
         
-        # Initialize empty states
-        self.model = None
-        self.client = None
-        self.chat_sessions = {}
-        
         # Check if Google AI is available
         if not GOOGLE_AI_AVAILABLE:
-            print("❌ Google AI library not available - Gemini features disabled")
-            print("   Install with: pip install google-generativeai")
-            return
-        
-        # Check API key
-        if not self.api_key:
-            print("⚠️  No Gemini API key found - Gemini features disabled")
-            print("   Set GEMINI_API_KEY environment variable")
+            self.model = None
+            print("⚠️ Google AI library not available - Gemini features disabled")
             return
             
-        # Configure and initialize
-        try:
+        # Configure Gemini API
+        if self.api_key:
             genai.configure(api_key=self.api_key)
             self._initialize_model()
-            print(f"✅ Gemini service initialized successfully with {self.model_name}")
-        except Exception as e:
-            print(f"❌ Failed to initialize Gemini service: {e}")
+        else:
             self.model = None
-            self.client = None
+            print("⚠️ No Gemini API key found - Gemini features disabled")
             
         # Conversation context storage
         self.conversation_contexts: Dict[str, List[Dict]] = {}
@@ -75,25 +62,16 @@ class GeminiService:
         """Initialize the Gemini model with configuration"""
         if not GOOGLE_AI_AVAILABLE:
             self.model = None
-            self.client = None
             return
             
         try:
-            # Safety settings - use more permissive settings
-            if self.enable_safety:
-                safety_settings = {
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                }
-            else:
-                safety_settings = {
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                }
+            # Safety settings
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            } if self.enable_safety else {}
             
             # Generation configuration
             generation_config = genai.types.GenerationConfig(
@@ -123,19 +101,13 @@ class GeminiService:
             self.model = genai.GenerativeModel(
                 model_name=self.model_name,
                 generation_config=generation_config,
-                safety_settings=safety_settings,
+                safety_settings=safety_settings if self.enable_safety else None,
                 system_instruction=system_instruction
             )
-            
-            # Set client to model for backward compatibility
-            self.client = self.model
-            
-            print(f"Success: Gemini service initialized with model {self.model_name}")
             
         except Exception as e:
             print(f"Failed to initialize Gemini model: {e}")
             self.model = None
-            self.client = None
     
     def is_available(self) -> bool:
         """Check if Gemini service is available"""
@@ -616,50 +588,25 @@ def generate_text(text: str) -> str:
         Generated response text
     """
     if not gemini_service.is_available():
-        print("Gemini service not available, using fallback response")
-        return "สวัสดีค่ะ! ขออภัยที่ระบบ AI ไม่พร้อมใช้งานในขณะนี้ หากต้องการความช่วยเหลือจากเจ้าหน้าที่ กรุณาพิมพ์ 'ติดต่อเจ้าหน้าที่' ได้เลยค่ะ"
+        return "ขออภัย ระบบ AI ไม่พร้อมใช้งานในขณะนี้"
     
     try:
         # Direct synchronous call using the model
         response = gemini_service.model.generate_content(text)
         
         if response and response.text:
-            response_text = response.text.strip()
-            print(f"Gemini responded successfully (length: {len(response_text)})")
-            return response_text
+            return response.text.strip()
         else:
-            print("Gemini returned empty response")
-            return "ขออภัย ไม่สามารถประมวลผลคำขอได้ในขณะนี้ กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่ได้ค่ะ"
+            return "ขออภัย ไม่สามารถประมวลผลคำขอได้ในขณะนี้"
         
     except Exception as e:
-        print(f"Error generating text with Gemini: {e}")
-        # Enhanced fallback responses based on common scenarios
-        if "API" in str(e).upper():
-            return "ขออภัย มีปัญหาการเชื่อมต่อกับระบบ AI กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่ได้ค่ะ"
-        elif "QUOTA" in str(e).upper():
-            return "ขออภัย ระบบ AI ใช้งานหนักในขณะนี้ กรุณาลองใหม่ในอีกสักครู่หรือติดต่อเจ้าหน้าที่ได้ค่ะ"
-        else:
-            return "ขออภัย เกิดข้อผิดพลาดในระบบ AI กรุณาลองใหม่อีกครั้งหรือติดต่อเจ้าหน้าที่ได้ค่ะ"
+        print(f"Error generating text: {e}")
+        return "ขออภัย เกิดข้อผิดพลาดในระบบ"
 
 async def check_gemini_availability() -> bool:
     """Check if Gemini service is available"""
-    available = gemini_service.is_available()
-    print(f"Gemini availability check: {available}")
-    if not available:
-        status = get_gemini_status()
-        print(f"Gemini status details: {status}")
-    return available
+    return gemini_service.is_available()
 
 def get_gemini_status() -> Dict[str, Any]:
     """Get detailed Gemini service status"""
-    status = gemini_service.get_model_info()
-    
-    # Add diagnostic information
-    status.update({
-        "google_ai_library_available": GOOGLE_AI_AVAILABLE,
-        "api_key_configured": bool(gemini_service.api_key),
-        "model_initialized": gemini_service.model is not None,
-        "last_check": datetime.now().isoformat()
-    })
-    
-    return status
+    return gemini_service.get_model_info()

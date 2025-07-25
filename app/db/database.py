@@ -25,7 +25,7 @@ ensure_database_directory()
 # สร้าง async engine
 async_engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=False,  # Disable SQL logging to prevent startup hanging
+    echo=True,
     future=True
 )
 
@@ -63,21 +63,7 @@ async def create_db_and_tables():
             
         print("Database migration completed successfully!")
 
-_db_initialized = False
-
-async def ensure_db_initialized():
-    """Ensure database is initialized (lazy initialization)"""
-    global _db_initialized
-    if not _db_initialized:
-        try:
-            await create_db_and_tables()
-            _db_initialized = True
-        except Exception as e:
-            print(f"Database initialization error: {e}")
-            # Continue without marking as initialized so it will retry
-
 async def get_db():
     """Dependency สำหรับรับ database session"""
-    await ensure_db_initialized()
     async with AsyncSessionLocal() as session:
         yield session

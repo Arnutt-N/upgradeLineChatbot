@@ -55,142 +55,41 @@ async def get_all_chat_history_by_user(
     offset: int = 0
 ) -> List[ChatHistory]:
     """
-    (ฟังก์ชันใหม่ - แทนที่ get_chat_history with dual-table fallback)
+    (ฟังก์ชันใหม่ - แทนที่ get_chat_history)
     ดึงประวัติแชททั้งหมดของผู้ใช้คนเดียว เรียงจากเก่าไปใหม่สำหรับแสดงผลในห้องแชท
     """
-    try:
-        # Try new ChatHistory table first
-        query = select(ChatHistory).where(
-            ChatHistory.user_id == user_id
-        ).order_by(
-            ChatHistory.timestamp.asc()  # เรียงจากเก่าไปใหม่
-        ).limit(limit).offset(offset)
-        
-        result = await db.execute(query)
-        new_messages = result.scalars().all()
-        
-        if new_messages:
-            print(f"Found {len(new_messages)} messages in ChatHistory table for user {user_id}")
-            return new_messages
-        
-        # Fallback to old ChatMessage table
-        from app.db.models import ChatMessage
-        query_old = select(ChatMessage).where(
-            ChatMessage.user_id == user_id
-        ).order_by(
-            ChatMessage.created_at.asc()  # เรียงจากเก่าไปใหม่
-        ).limit(limit).offset(offset)
-        
-        result_old = await db.execute(query_old)
-        old_messages = result_old.scalars().all()
-        
-        if old_messages:
-            print(f"Found {len(old_messages)} messages in ChatMessage table for user {user_id} (fallback)")
-            
-            # Convert old messages to ChatHistory-compatible format
-            compatible_messages = []
-            for msg in old_messages:
-                class ChatHistoryCompat:
-                    def __init__(self, old_msg):
-                        self.id = old_msg.id
-                        self.message_content = old_msg.message
-                        self.message_type = old_msg.sender_type
-                        self.timestamp = old_msg.created_at
-                        self.user_id = old_msg.user_id
-                
-                compatible_messages.append(ChatHistoryCompat(msg))
-            
-            return compatible_messages
-        
-        print(f"No messages found for user {user_id} in any table")
-        return []
-        
-    except Exception as e:
-        print(f"Error getting chat history for user {user_id}: {e}")
-        return []
+    query = select(ChatHistory).where(
+        ChatHistory.user_id == user_id
+    ).order_by(
+        ChatHistory.timestamp.asc()  # <-- แก้ไข: เรียงจากเก่าไปใหม่
+    ).limit(limit).offset(offset)
+    
+    result = await db.execute(query)
+    return result.scalars().all()
 
 async def get_users_with_history(db: AsyncSession) -> List[UserStatus]:
     """
-    (ฟังก์ชันใหม่ - Enhanced with error handling)
+    (ฟังก์ชันใหม่)
     ดึงรายชื่อผู้ใช้ทั้งหมด (จาก UserStatus) - แสดงทุกคนไม่ว่าจะมีประวัติแชทหรือไม่
     """
-    try:
-        # First try to get users ordered by last update
-        query = select(UserStatus).order_by(
-            UserStatus.updated_at.desc().nulls_last()
-        )
-        
-        result = await db.execute(query)
-        users = result.scalars().all()
-        
-        if not users:
-            print("No users found in UserStatus table")
-            return []
-            
-        print(f"Successfully loaded {len(users)} users from database")
-        return users
-        
-    except Exception as e:
-        print(f"Error loading users from database: {e}")
-        # Try alternative query without ordering
-        try:
-            query = select(UserStatus)
-            result = await db.execute(query)
-            users = result.scalars().all()
-            print(f"Fallback query successful: {len(users)} users")
-            return users
-        except Exception as e2:
-            print(f"Fallback query also failed: {e2}")
-            return []
+    query = select(UserStatus).order_by(UserStatus.updated_at.desc())
+    
+    result = await db.execute(query)
+    return result.scalars().all()
 
 async def get_latest_chat_in_history(db: AsyncSession, user_id: str) -> Optional[ChatHistory]:
     """
-    (ฟังก์ชันใหม่ - Enhanced with fallback to old table)
+    (ฟังก์ชันใหม่)
     ดึงข้อความล่าสุดเพียง 1 ข้อความของผู้ใช้ เพื่อแสดงในหน้ารายชื่อ
     """
-    try:
-        # Try new ChatHistory table first
-        query = select(ChatHistory).where(
-            ChatHistory.user_id == user_id
-        ).order_by(
-            ChatHistory.timestamp.desc()
-        ).limit(1)
-        
-        result = await db.execute(query)
-        chat_history = result.scalar_one_or_none()
-        
-        if chat_history:
-            return chat_history
-        
-        # Fallback to old ChatMessage table if no records in new table
-        from app.db.models import ChatMessage
-        query_old = select(ChatMessage).where(
-            ChatMessage.user_id == user_id
-        ).order_by(
-            ChatMessage.created_at.desc()
-        ).limit(1)
-        
-        result_old = await db.execute(query_old)
-        old_message = result_old.scalar_one_or_none()
-        
-        if old_message:
-            # Create a ChatHistory-like object from old message
-            # This is a compatibility layer
-            class ChatHistoryCompat:
-                def __init__(self, old_msg):
-                    self.id = old_msg.id
-                    self.message_content = old_msg.message
-                    self.message_type = old_msg.sender_type
-                    self.timestamp = old_msg.created_at
-                    self.user_id = old_msg.user_id
-            
-            return ChatHistoryCompat(old_message)
-        
-        return None
-        
-    except Exception as e:
-        print(f"Error getting latest chat for user {user_id}: {e}")
-        return None
+    query = select(ChatHistory).where(
+        ChatHistory.user_id == user_id
+    ).order_by(
+        ChatHistory.timestamp.desc()
+    ).limit(1)
+    
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
 
 async def get_chat_history(
     db: AsyncSession,

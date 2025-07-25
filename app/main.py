@@ -3,7 +3,6 @@ import uvicorn
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.database import create_db_and_tables
 from app.api.routers import webhook, admin, form_admin
@@ -13,35 +12,14 @@ app = FastAPI(
     version=settings.APP_VERSION
 )
 
-# Configure CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Mount static files with absolute path
-import os
-current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-static_dir = os.path.join(current_dir, "static")
-
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-    print(f"Static files mounted from: {static_dir}")
-else:
-    print(f"Warning: Static directory not found at {static_dir}")
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
 async def on_startup():
-    print("Application startup: Initializing database...")
-    try:
-        await create_db_and_tables()
-        print("Database and tables created successfully.")
-    except Exception as e:
-        print(f"Warning: Database initialization failed: {e}")
-        print("Application will start anyway, database will be created on first request.")
+    print("Application startup: Creating database and tables...")
+    await create_db_and_tables()
+    print("Database and tables created successfully.")
 
 @app.on_event("shutdown")
 async def on_shutdown():

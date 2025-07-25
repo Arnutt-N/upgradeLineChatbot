@@ -41,10 +41,6 @@ from app.services.gemini_service import (
     get_ai_response, image_understanding, document_understanding, 
     check_gemini_availability
 )
-from app.services.fast_gemini_service import (
-    get_ai_response_fast, check_gemini_availability as check_fast_gemini,
-    get_gemini_status
-)
 from app.services.line_handler_enhanced import (
     get_user_profile_enhanced, send_telegram_notification_enhanced
 )
@@ -175,21 +171,6 @@ class MessageHandler:
             )
             await save_chat_message(db, user_id, 'user', message_text)
             
-            # Broadcast to admin panel via WebSocket
-            from app.services.ws_manager import manager
-            from app.utils.timezone import get_thai_time
-            
-            thai_time = get_thai_time()
-            await manager.broadcast({
-                "type": "new_message", 
-                "userId": user_id, 
-                "message": message_text,
-                "displayName": profile_data.get('display_name', f"Customer {user_id[-6:]}"),
-                "pictureUrl": profile_data.get('picture_url'),
-                "sessionId": session_id, 
-                "timestamp": thai_time.isoformat()
-            })
-            
             # Show loading animation
             await self._show_loading_animation(line_bot_api, user_id)
             
@@ -197,21 +178,19 @@ class MessageHandler:
             if await self._handle_special_commands(message_text, event, db, line_bot_api, profile_data):
                 return True
             
-            # Get AI response using Fast Gemini Service
-            gemini_available = await check_fast_gemini()
+            # Get AI response using Gemini
+            gemini_available = await check_gemini_availability()
             
             if gemini_available:
                 try:
-                    print(f"🚀 Using Fast Gemini for user {user_id}: {message_text[:50]}...")
-                    
-                    # Use fast AI response with optimized context
-                    context = f"ผู้ใช้: {profile_data.get('display_name', 'ลูกค้า')}"
-                    ai_response = await get_ai_response_fast(
-                        message=message_text,
-                        context=context
+                    # Enhanced prompt for better context
+                    enhanced_prompt = self._enhance_text_prompt(message_text, profile_data)
+                    ai_response = await get_ai_response(
+                        user_message=enhanced_prompt,
+                        user_id=user_id,
+                        user_profile=profile_data,
+                        db=db
                     )
-                    
-                    print(f"✅ Fast AI response received in minimal time")
                     
                     # Reply with AI response
                     await line_bot_api.reply_message(
@@ -225,17 +204,9 @@ class MessageHandler:
                     await save_chat_to_history(
                         db=db, user_id=user_id, message_type='ai_bot',
                         message_content=ai_response, session_id=session_id,
-                        extra_data={"ai_powered": True, "fast_gemini": True, "original_message": message_text}
+                        extra_data={"ai_powered": True, "gemini_response": True, "original_message": message_text}
                     )
                     await save_chat_message(db, user_id, 'ai_bot', ai_response)
-                    
-                    # Broadcast AI response to admin panel
-                    await manager.broadcast({
-                        "type": "bot_auto_reply", 
-                        "userId": user_id, 
-                        "message": ai_response, 
-                        "sessionId": session_id
-                    })
                     
                 except Exception as e:
                     # Fallback response
@@ -250,7 +221,7 @@ class MessageHandler:
                     )
             else:
                 # AI unavailable fallback
-                fallback_response = "สวัสดีค่ะ! ดีใจที่ได้คุยกับคุณนะคะ 😊 หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่' ได้เลยค่ะ"
+                fallback_response = "สวัสดีครับ/ค่ะ ขอบคุณที่ติดต่อเรามา หากต้องการคุยกับเจ้าหน้าที่ โปรดพิมพ์ 'ติดต่อเจ้าหน้าที่'"
                 await line_bot_api.reply_message(
                     ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=fallback_response)])
                 )
@@ -761,31 +732,12 @@ class MessageHandler:
     # Helper methods
     
     async def _show_loading_animation(self, line_bot_api: AsyncMessagingApi, user_id: str, seconds: int = 3):
-        """Enhanced loading animation with debug info and fallbacks"""
+        """Show loading animation - disabled for compatibility"""
         try:
-            from app.services.line_loading_helper import (
-                show_enhanced_loading_animation, 
-                print_loading_animation_debug
-            )
-            
-            print(f"🔄 Showing loading animation for user {user_id} ({seconds}s)")
-            success = await show_enhanced_loading_animation(
-                line_bot_api=line_bot_api,
-                user_id=user_id, 
-                context="กำลังประมวลผล",
-                seconds=seconds
-            )
-            
-            # Debug information
-            if not success:
-                print_loading_animation_debug(user_id, success)
-                print(f"⚠️ Loading animation failed for user {user_id}, continuing without it")
-            else:
-                print(f"✅ Loading animation shown successfully for user {user_id}")
-                
-        except Exception as e:
-            print(f"❌ Loading animation error for user {user_id}: {e}")
-            # Continue without loading animation - don't let this break the flow
+            # ShowLoadingAnimationRequest not available in current SDK version
+            pass
+        except Exception:
+            pass  # Loading animation might not be available
     
     async def _get_blob_api(self) -> AsyncMessagingApiBlob:
         """Get blob API client for downloading content"""

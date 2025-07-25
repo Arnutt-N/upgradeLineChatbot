@@ -1,8 +1,16 @@
-# Python
+# =============================================================================
+# PYTHON ENVIRONMENT
+# =============================================================================
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -16,64 +24,232 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# Virtual Environment
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
 venv/
 env/
 ENV/
 .env
 .venv
+.ENV/
+env.bak/
+venv.bak/
 
-# Environment Variables (keep .env.example but not .env)
+# =============================================================================
+# ENVIRONMENT VARIABLES & SECRETS
+# =============================================================================
+
+# Environment files (keep .env.example)
 .env.local
 .env.development
 .env.test
+.env.production
 .env.production.local
 
-# Database files (keep for deployment but exclude backups)
+# Secret keys and tokens
+*.key
+*.pem
+secrets.json
+config/secrets/
+
+# =============================================================================
+# DATABASE & DATA FILES
+# =============================================================================
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
 *.db-journal
+
+# Database backups
 *_backup_*.db
 chatbot_backup_*.db
+backup_before_refactor/
 
-# Logs
+# PostgreSQL
+*.dump
+*.sql.gz
+
+# Data files
+*.csv.bak
+*.json.bak
+
+# =============================================================================
+# BACKEND SPECIFIC
+# =============================================================================
+
+# FastAPI cache
+.fastapi_cache/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# =============================================================================
+# FRONTEND SPECIFIC
+# =============================================================================
+
+# Node modules (if using Node.js tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# CSS/JS maps
+*.map
+
+# =============================================================================
+# LOGS & MONITORING
+# =============================================================================
+
+# Log files
 *.log
 logs/
+*.log.*
 
-# IDE
+# Application logs
+backend/logs/
+scripts/logs/
+
+# =============================================================================
+# IDE & EDITOR
+# =============================================================================
+
+# Visual Studio Code
 .vscode/
+*.code-workspace
+
+# PyCharm
 .idea/
+*.iml
+*.ipr
+*.iws
+
+# Vim
 *.swp
 *.swo
 *~
+.netrwhist
 
-# OS
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# =============================================================================
+# OPERATING SYSTEM
+# =============================================================================
+
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
-Thumbs.db
+.fseventsd
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
-# Test files
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =============================================================================
+# DEVELOPMENT & TESTING
+# =============================================================================
+
+# Test files and scripts
 test_*.py
 debug_*.py
 simple_*.py
 check_*.py
 validate_*.py
 verify_*.py
+*_test.py
+temp_*.py
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# =============================================================================
+# TEMPORARY & CACHE FILES
+# =============================================================================
 
 # Temporary files
 tmp/
 temp/
 *.tmp
 *.temp
+.tmp/
 
-# Documentation (keep main docs)
+# Cache directories
+.cache/
+__pycache__/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# =============================================================================
+# DOCUMENTATION (EXCLUDE TEMPORARY DOCS)
+# =============================================================================
+
+# Temporary documentation files
 PHASE_*.md
 FIX_*.md
 FINAL_*.md
@@ -82,14 +258,91 @@ FINAL_*.md
 *_UPDATE.md
 *_FIXES.md
 *_COMPLETED.md
+REFACTORING_*.md
+INTEGRATION_*.md
+MESSAGE_HANDLER_*.md
+WEBSOCKET_FIX_*.md
+DUPLICATE_FIX_*.md
+GEMINI_SERVICE_FIX_*.md
+
+# Keep important docs
+!README.md
+!SECURITY.md
+!CONTRIBUTING.md
+!CHANGELOG.md
+!LICENSE.md
+
+# =============================================================================
+# BACKUP FILES
+# =============================================================================
 
 # Backup files
 *.bak
 *.backup
+*.old
+*.orig
+*~
+*.swp
 
-# Render/Deployment specific
+# Project backups
+backup_*/
+*_backup/
+
+# =============================================================================
+# DEPLOYMENT & CLOUD
+# =============================================================================
+
+# Vercel
 .vercel/
 *.vercel.template
 
-# Cache
-.cache/
+# Render
+.render/
+
+# Docker
+.dockerignore
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# =============================================================================
+# TOOLS & UTILITIES 
+# =============================================================================
+
+# AI Agent tools (removed from Git tracking, keep local only)
+ai-agent-jetpack/
+
+# keep
+keep/
+
+# MCP Server node_modules
+tools/vscode-mcp-server/node_modules/
+
+# Scripts output
+scripts/output/
+scripts/logs/
+
+# =============================================================================
+# PROJECT SPECIFIC EXCLUDES
+# =============================================================================
+
+# Refactoring artifacts
+refactor_project.py
+refactor_project_simple.py
+update_imports.py
+test_refactored_structure.py
+
+# Old structure remnants (uncomment if needed)
+# app/
+# templates/
+# static/
+# migrations/
+
+# Line.txt (contains sensitive LINE bot info)
+Line.txt
+
+# Generated files
+folder-structure.txt

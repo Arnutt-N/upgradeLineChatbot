@@ -1,0 +1,49 @@
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Login successful
+                    showSuccess('เข้าสู่ระบบสำเร็จ! กำลังนำทางไป Dashboard...');
+                    
+                    // Redirect to dashboard after short delay
+                    setTimeout(() => {
+                        window.location.href = '/form-admin/';
+                    }, 1500);
+                } else {
+                    // Login failed
+                    showError(result.detail || 'เข้าสู่ระบบไม่สำเร็จ');
+                }
+                
+            } catch (error) {
+                showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        function showSuccess(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.className = 'bg-green-50 border border-green-200 rounded-lg p-3';
+            errorDiv.querySelector('i').className = 'fas fa-check-circle text-green-400 mr-2';
+            errorDiv.querySelector('span').className = 'text-green-700 text-sm';
+            errorDiv.classList.remove('hidden');
+        }
+
+        // Auto-focus username field
+        document.getElementById('username').focus();
+        
+        // Handle Enter key
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

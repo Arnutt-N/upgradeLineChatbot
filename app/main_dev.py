@@ -96,12 +96,4 @@ async def test_static():
         "instructions": "Visit the URLs above to test static file serving"
     }
 
-if __name__ == "__main__":
-    print("Starting server...")
-    print(f"Admin Live Chat UI available at http://127.0.0.1:{settings.PORT}/admin")
-    uvicorn.run(
-        "app.main:app", 
-        host=settings.HOST, 
-        port=settings.PORT, 
-        reload=settings.RELOAD
-    )
+
